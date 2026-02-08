@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1a365d">
+    <meta name="description" content="NPR News Summarizer - Get AI summaries of NPR news articles">
+    
+    <title>NPR News Summarizer</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📰</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📰</text></svg>">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <h1>📰 NPR News Summarizer</h1>
+                <div class="header-actions">
+                    <button id="refresh-btn" class="btn btn-icon" title="Refresh Articles">
+                        🔄
+                    </button>
+                    <button id="auth-btn" class="btn btn-secondary">
+                        Login
+                    </button>
+                </div>
+            </div>
+            <div id="last-updated" class="last-updated"></div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Loading State -->
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+                <p>Loading articles...</p>
+            </div>
+
+            <!-- Article List -->
+            <div id="article-list" class="article-list">
+                <!-- Articles will be inserted here -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="empty-state hidden">
+                <p>No articles found.</p>
+                <button id="empty-refresh-btn" class="btn btn-primary">Refresh Now</button>
+            </div>
+        </main>
+
+        <!-- Article Detail Modal -->
+        <div id="article-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modal-title"></h2>
+                    <button id="close-modal" class="btn btn-icon">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div id="modal-meta" class="article-meta"></div>
+                    <div id="modal-description" class="article-description"></div>
+                    
+                    <div class="action-buttons">
+                        <button id="summarize-btn" class="btn btn-primary">
+                            ✨ Summarize
+                        </button>
+                        <button id="listen-btn" class="btn btn-secondary" disabled>
+                            🔊 Listen
+                        </button>
+                        <a id="read-original" class="btn btn-link" target="_blank" rel="noopener">
+                            Read Original →
+                        </a>
+                    </div>
+
+                    <!-- Summary Section -->
+                    <div id="summary-section" class="summary-section hidden">
+                        <h3>Summary</h3>
+                        <div id="summary-content" class="summary-content"></div>
+                        <div id="summary-meta" class="summary-meta"></div>
+                    </div>
+
+                    <!-- Audio Player -->
+                    <div id="audio-section" class="audio-section hidden">
+                        <audio id="audio-player" controls></audio>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auth Modal -->
+        <div id="auth-modal" class="modal hidden">
+            <div class="modal-content auth-modal-content">
+                <div class="modal-header">
+                    <h2 id="auth-title">Login</h2>
+                    <button id="close-auth-modal" class="btn btn-icon">✕</button>
+                </div>
+                <div class="modal-body">
+                    <form id="auth-form">
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" name="password" required minlength="8">
+                        </div>
+                        <div id="auth-error" class="error-message hidden"></div>
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <span id="auth-submit-text">Login</span>
+                        </button>
+                    </form>
+                    <p class="auth-switch">
+                        <span id="auth-switch-text">Don't have an account?</span>
+                        <button id="auth-switch-btn" class="btn btn-link">Register</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toast-container" class="toast-container"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/app.js"></script>
+    
+    <!-- Register Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('Service Worker registered'))
+                .catch(err => console.log('Service Worker registration failed'));
+        }
+    </script>
+</body>
+</html>
