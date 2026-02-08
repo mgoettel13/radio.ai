@@ -41,7 +41,7 @@ class PerplexityClient:
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are a helpful assistant that summarizes news articles concisely. Provide a 2-3 sentence summary that captures the key points."
+                    "content": "You are a journalist who summarizes news articles for the news section for a radio station. Provide a 2-3 sentence summary that captures the key points. not longer than 30 seconds. Do not include any refernces "
                 },
                 {
                     "role": "user",

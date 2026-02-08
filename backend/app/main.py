@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import uuid
+from logging.handlers import RotatingFileHandler
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
@@ -22,7 +23,23 @@ from app.schemas.article import ArticleRefreshResponse
 from app.services import RSSFetcher
 
 # Setup logging
-logging.basicConfig(level=logging.INFO)
+LOGS_DIR = os.path.join(os.path.dirname(__file__), "..", "logs")
+os.makedirs(LOGS_DIR, exist_ok=True)
+
+# Configure logging with file and console handlers
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        RotatingFileHandler(
+            os.path.join(LOGS_DIR, "app.log"),
+            maxBytes=10 * 1024 * 1024,  # 10MB per file
+            backupCount=5,  # Keep 5 backup files
+            encoding="utf-8"
+        ),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
 
 settings = get_settings()

@@ -43,13 +43,12 @@ class SpeechifyClient:
             # Use SDK for TTS request
             logger.debug(f"Calling SDK with text={text[:50]}..., voice_id={voice_id}")
             response = self._client.tts.audio.speech(
-                input="The death toll from the January 1, 2026, fire at Le Constellation bar in Crans-Montana, Switzerland, has risen to 41 after an 18-year-old Swiss national died from injuries in a Zurich hospital on January 31.[1][4] The blaze, which started in the crowded basement during New Year's celebrations when sparklers on champagne bottles ignited flammable ceiling insulation, injured over 100 people, many with severe burns, amid reports of a blocked emergency exit and inadequate fire safety measures.[2][3] Swiss prosecutors have launched a criminal investigation into the bar owners for negligent homicide, bodily harm, and arson, with one co-owner under bail and his wife under house arrest.[3][4]",
+             #   input="The death toll from the January 1, 2026, fire at Le Constellation bar in Crans-Montana, Switzerland, has risen to 41 after an 18-year-old Swiss national died from injuries in a Zurich hospital on January 31.[1][4] The blaze, which started in the crowded basement during New Year's celebrations when sparklers on champagne bottles ignited flammable ceiling insulation, injured over 100 people, many with severe burns, amid reports of a blocked emergency exit and inadequate fire safety measures.[2][3] Swiss prosecutors have launched a criminal investigation into the bar owners for negligent homicide, bodily harm, and arson, with one co-owner under bail and his wife under house arrest.[3][4]",
+                input=str(text),
                 voice_id="oliver",
                 audio_format="mp3"  
             )
-            print("api call: "+ text)
-            print("good call: "+ "The death toll from the January 1, 2026, fire at Le Constellation bar in Crans-Montana, Switzerland, has risen to 41 after an 18-year-old Swiss national died from injuries in a Zurich hospital on January 31.[1][4] The blaze, which started in the crowded basement during New Year's celebrations when sparklers on champagne bottles ignited flammable ceiling insulation, injured over 100 people, many with severe burns, amid reports of a blocked emergency exit and inadequate fire safety measures.[2][3] Swiss prosecutors have launched a criminal investigation into the bar owners for negligent homicide, bodily harm, and arson, with one co-owner under bail and his wife under house arrest.[3][4]")
-
+            
             logger.info("Speechify SDK response received")
 
             # SDK returns an object with audio_data (base64 string or bytes)
