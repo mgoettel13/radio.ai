@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 class TTSRequest(BaseModel):
     text: str
-    voice_id: Optional[str] = "matthew"
+    voice_id: Optional[str] = "oliver"
 
 
 class TTSResponse(BaseModel):

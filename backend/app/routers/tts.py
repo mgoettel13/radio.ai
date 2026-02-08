@@ -16,7 +16,7 @@ async def text_to_speech(
     try:
         audio_url, duration = await client.text_to_speech(
             text=request.text,
-            voice_id=request.voice_id or "matthew"
+            voice_id=request.voice_id or "oliver"
         )
     except Exception as e:
         raise HTTPException(
