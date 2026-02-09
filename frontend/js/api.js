@@ -142,6 +142,20 @@ class API {
     async getCurrentUser() {
         return this.request('/auth/me');
     }
+
+    async forgotPassword(email) {
+        return this.request('/auth/forgot-password', {
+            method: 'POST',
+            body: JSON.stringify({ email })
+        });
+    }
+
+    async resetPassword(token, password) {
+        return this.request('/auth/reset-password', {
+            method: 'POST',
+            body: JSON.stringify({ token, password })
+        });
+    }
 }
 
 // Create global API instance

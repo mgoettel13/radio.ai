@@ -454,6 +454,28 @@ body {
     display: none !important;
 }
 
+/* Auth forms */
+.auth-forgot {
+    text-align: center;
+    margin-top: 0.5rem;
+}
+
+.form-info {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.success-message {
+    background-color: #c6f6d5;
+    border: 1px solid var(--success);
+    color: #276749;
+    padding: 0.75rem;
+    border-radius: var(--radius);
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
 /* Responsive */
 @media (max-width: 480px) {
     .app-header h1 {

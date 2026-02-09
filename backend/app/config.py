@@ -17,6 +17,18 @@ class Settings(BaseSettings):
     # Security
     secret_key: str = "change-me-in-production"
     access_token_expire_minutes: int = 60
+    password_reset_expire_hours: int = 1
+    
+    # Email Settings (for password reset)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = "noreply@example.com"
+    frontend_url: str = "http://localhost:8000"
+    
+    # Development mode - log reset tokens instead of sending email
+    email_console_mode: bool = True
 
     # API Keys
     perplexity_api_key: str = ""

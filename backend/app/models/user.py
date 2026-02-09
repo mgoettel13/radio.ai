@@ -12,6 +12,7 @@ from app.database import Base
 
 if TYPE_CHECKING:
     from app.models.user_article import UserArticle
+    from app.models.password_reset import PasswordReset
 
 
 class User(Base):
@@ -32,6 +33,9 @@ class User(Base):
     # Relationships
     user_articles: Mapped[list["UserArticle"]] = relationship(
         "UserArticle", back_populates="user", cascade="all, delete-orphan"
+    )
+    password_resets: Mapped[list["PasswordReset"]] = relationship(
+        "PasswordReset", back_populates="user", cascade="all, delete-orphan"
     )
     
     def __repr__(self) -> str:

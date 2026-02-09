@@ -34,3 +34,19 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     password: Optional[str] = None
     email: Optional[EmailStr] = None
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Request schema for forgot password."""
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    """Request schema for reset password."""
+    token: str
+    password: str
+
+
+class MessageResponse(BaseModel):
+    """Generic message response."""
+    message: str

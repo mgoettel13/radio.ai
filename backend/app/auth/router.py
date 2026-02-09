@@ -2,14 +2,16 @@
 Authentication router with login, register, and user endpoints.
 """
 
-from datetime import timedelta
+import secrets
+from datetime import datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.security import create_access_token
+from app.auth.security import create_access_token, get_password_hash
 from app.auth.service import (
     authenticate_user,
     create_user,
@@ -18,7 +20,16 @@ from app.auth.service import (
 )
 from app.config import get_settings
 from app.database import get_async_session
-from app.schemas.user import Token, UserCreate, UserRead
+from app.models.password_reset import PasswordReset
+from app.schemas.user import (
+    ForgotPasswordRequest,
+    MessageResponse,
+    ResetPasswordRequest,
+    Token,
+    UserCreate,
+    UserRead,
+)
+from app.services.email import send_password_reset_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 settings = get_settings()
@@ -120,3 +131,93 @@ async def get_users_me(
     This matches the fastapi-users endpoint path.
     """
     return UserRead.model_validate(current_user)
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+async def forgot_password(
+    request: ForgotPasswordRequest,
+    session: AsyncSession = Depends(get_async_session),
+):
+    """
+    Request a password reset.
+    
+    Sends a password reset email if the user exists.
+    Always returns success to prevent email enumeration.
+    """
+    # Find user by email
+    user = await get_user_by_email(session, request.email)
+    
+    if user:
+        # Generate secure reset token
+        reset_token = secrets.token_urlsafe(32)
+        
+        # Calculate expiration time
+        expires_at = datetime.utcnow() + timedelta(hours=settings.password_reset_expire_hours)
+        
+        # Create password reset record
+        password_reset = PasswordReset(
+            user_id=user.id,
+            token=reset_token,
+            expires_at=expires_at,
+        )
+        session.add(password_reset)
+        await session.commit()
+        
+        # Send reset email
+        send_password_reset_email(user.email, reset_token)
+    
+    # Always return success to prevent email enumeration
+    return MessageResponse(
+        message="If the email exists, a reset link has been sent"
+    )
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+async def reset_password(
+    request: ResetPasswordRequest,
+    session: AsyncSession = Depends(get_async_session),
+):
+    """
+    Reset password using a valid reset token.
+    
+    Validates the token and updates the user's password.
+    """
+    # Find the reset token
+    result = await session.execute(
+        select(PasswordReset).where(PasswordReset.token == request.token)
+    )
+    password_reset = result.scalar_one_or_none()
+    
+    # Validate token exists
+    if not password_reset:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+    
+    # Check if token is valid (not expired and not used)
+    if not password_reset.is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+    
+    # Get the user
+    user = await get_user_by_email(session, password_reset.user.email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found"
+        )
+    
+    # Update the user's password
+    user.hashed_password = get_password_hash(request.password)
+    
+    # Mark token as used
+    password_reset.used_at = datetime.utcnow()
+    
+    await session.commit()
+    
+    return MessageResponse(
+        message="Password has been reset successfully"
+    )

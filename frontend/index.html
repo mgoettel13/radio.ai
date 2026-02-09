@@ -102,6 +102,7 @@
                     <button id="close-auth-modal" class="btn btn-icon">✕</button>
                 </div>
                 <div class="modal-body">
+                    <!-- Login/Register Form -->
                     <form id="auth-form">
                         <div class="form-group">
                             <label for="email">Email</label>
@@ -120,6 +121,64 @@
                         <span id="auth-switch-text">Don't have an account?</span>
                         <button id="auth-switch-btn" class="btn btn-link">Register</button>
                     </p>
+                    <p class="auth-forgot">
+                        <button id="forgot-password-btn" class="btn btn-link">Forgot Password?</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forgot Password Modal -->
+        <div id="forgot-password-modal" class="modal hidden">
+            <div class="modal-content auth-modal-content">
+                <div class="modal-header">
+                    <h2>Reset Password</h2>
+                    <button id="close-forgot-modal" class="btn btn-icon">✕</button>
+                </div>
+                <div class="modal-body">
+                    <form id="forgot-password-form">
+                        <p class="form-info">Enter your email address and we'll send you a link to reset your password.</p>
+                        <div class="form-group">
+                            <label for="forgot-email">Email</label>
+                            <input type="email" id="forgot-email" name="email" required>
+                        </div>
+                        <div id="forgot-error" class="error-message hidden"></div>
+                        <div id="forgot-success" class="success-message hidden"></div>
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <span>Send Reset Link</span>
+                        </button>
+                    </form>
+                    <p class="auth-switch">
+                        <button id="back-to-login-btn" class="btn btn-link">← Back to Login</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reset Password Modal -->
+        <div id="reset-password-modal" class="modal hidden">
+            <div class="modal-content auth-modal-content">
+                <div class="modal-header">
+                    <h2>Set New Password</h2>
+                    <button id="close-reset-modal" class="btn btn-icon">✕</button>
+                </div>
+                <div class="modal-body">
+                    <form id="reset-password-form">
+                        <p class="form-info">Enter your new password below.</p>
+                        <div class="form-group">
+                            <label for="new-password">New Password</label>
+                            <input type="password" id="new-password" name="password" required minlength="8">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirm-password">Confirm Password</label>
+                            <input type="password" id="confirm-password" name="confirm" required minlength="8">
+                        </div>
+                        <div id="reset-error" class="error-message hidden"></div>
+                        <div id="reset-success" class="success-message hidden"></div>
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <span>Reset Password</span>
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
