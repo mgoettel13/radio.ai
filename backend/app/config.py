@@ -16,6 +16,7 @@ class Settings(BaseSettings):
 
     # Security
     secret_key: str = "change-me-in-production"
+    access_token_expire_minutes: int = 60
 
     # API Keys
     perplexity_api_key: str = ""

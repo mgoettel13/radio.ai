@@ -1,9 +1,7 @@
-from typing import AsyncGenerator, List
+from typing import AsyncGenerator
 
-from fastapi import Depends
-from fastapi_users.db import SQLAlchemyBaseUserTableUUID, SQLAlchemyUserDatabase
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import DeclarativeBase, relationship
+from sqlalchemy.orm import DeclarativeBase
 
 from app.config import get_settings
 
@@ -12,11 +10,6 @@ settings = get_settings()
 
 class Base(DeclarativeBase):
     pass
-
-
-class User(SQLAlchemyBaseUserTableUUID, Base):
-    # Add relationship to UserArticle
-    user_articles = relationship("UserArticle", back_populates="user", cascade="all, delete-orphan")
 
 
 # Create async engine
@@ -34,7 +27,3 @@ async def create_db_and_tables():
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
         yield session
-
-
-async def get_user_db(session: AsyncSession = Depends(get_async_session)):
-    yield SQLAlchemyUserDatabase(session, User)

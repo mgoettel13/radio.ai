@@ -7,8 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.auth import get_current_user, get_current_active_user
 from app.database import get_async_session
 from app.models import Article, Summary, UserArticle
+from app.models.user import User
 from app.schemas.article import ArticleList, ArticleRead, ArticleRefreshResponse
 from app.schemas.summary import SummaryRead
 from app.services import PerplexityClient, RSSFetcher
@@ -57,9 +59,11 @@ async def get_article_with_user_status(
 @router.get("", response_model=ArticleList)
 async def list_articles(
     session: AsyncSession = Depends(get_async_session),
-    user_id: Optional[uuid.UUID] = None  # Will be populated from auth
+    current_user: Optional[User] = Depends(get_current_user)
 ):
     """List the latest articles (up to 20), sorted by date (newest first)."""
+    user_id = current_user.id if current_user else None
+    
     result = await session.execute(
         select(Article)
         .options(selectinload(Article.summary))
@@ -141,9 +145,11 @@ async def refresh_articles(
 async def get_article(
     article_id: uuid.UUID,
     session: AsyncSession = Depends(get_async_session),
-    user_id: Optional[uuid.UUID] = None
+    current_user: Optional[User] = Depends(get_current_user)
 ):
     """Get a single article by ID."""
+    user_id = current_user.id if current_user else None
+    
     result = await session.execute(
         select(Article)
         .options(selectinload(Article.summary))
@@ -215,14 +221,10 @@ async def get_summary(
 async def mark_as_read(
     article_id: uuid.UUID,
     session: AsyncSession = Depends(get_async_session),
-    user_id: Optional[uuid.UUID] = None  # Will come from auth
+    current_user: User = Depends(get_current_active_user)
 ):
     """Mark an article as read."""
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required"
-        )
+    user_id = current_user.id
 
     # Check if article exists
     result = await session.execute(
@@ -266,14 +268,10 @@ async def mark_as_read(
 async def toggle_favorite(
     article_id: uuid.UUID,
     session: AsyncSession = Depends(get_async_session),
-    user_id: Optional[uuid.UUID] = None
+    current_user: User = Depends(get_current_active_user)
 ):
     """Toggle favorite status for an article."""
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required"
-        )
+    user_id = current_user.id
 
     # Check if article exists
     result = await session.execute(
