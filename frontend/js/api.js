@@ -156,6 +156,30 @@ class API {
             body: JSON.stringify({ token, password })
         });
     }
+
+    // Settings - Profile
+    async getProfile() {
+        return this.request('/api/settings/profile');
+    }
+
+    async updateProfile(data) {
+        return this.request('/api/settings/profile', {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    }
+
+    // Settings - Preferences
+    async getPreferences() {
+        return this.request('/api/settings/preferences');
+    }
+
+    async updatePreferences(data) {
+        return this.request('/api/settings/preferences', {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    }
 }
 
 // Create global API instance

@@ -271,6 +271,14 @@ class AuthManager {
             this.authBtn.textContent = 'Login';
             this.authBtn.onclick = () => this.openModal();
         }
+        
+        // Dispatch auth state change event for other components
+        window.dispatchEvent(new CustomEvent('auth:stateChanged', {
+            detail: {
+                isAuthenticated: this.isAuthenticated,
+                user: this.user
+            }
+        }));
     }
 
     async logout() {

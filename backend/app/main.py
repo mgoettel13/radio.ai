@@ -16,6 +16,7 @@ from app.config import get_settings
 from app.database import create_db_and_tables
 from app.models.user_article import UserArticle
 from app.routers import articles_router, tts_router
+from app.routers.settings import router as settings_router
 from app.schemas.article import ArticleRefreshResponse
 from app.services import RSSFetcher
 
@@ -136,6 +137,7 @@ setup_admin(app)
 # Include app routers
 app.include_router(articles_router)
 app.include_router(tts_router)
+app.include_router(settings_router)
 
 
 # Mount static files (for serving frontend)

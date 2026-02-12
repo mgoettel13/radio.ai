@@ -28,6 +28,9 @@
                     <button id="refresh-btn" class="btn btn-icon" title="Refresh Articles">
                         🔄
                     </button>
+                    <button id="settings-btn" class="btn btn-icon hidden" title="Settings">
+                        ⚙️
+                    </button>
                     <button id="auth-btn" class="btn btn-secondary">
                         Login
                     </button>
@@ -183,6 +186,146 @@
             </div>
         </div>
 
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="modal hidden">
+            <div class="modal-content settings-modal-content">
+                <div class="modal-header">
+                    <h2>Settings</h2>
+                    <button id="close-settings-modal" class="btn btn-icon">✕</button>
+                </div>
+                <div class="modal-body">
+                    <!-- Settings Tabs -->
+                    <div class="settings-tabs">
+                        <button class="settings-tab active" data-tab="profile">Profile</button>
+                        <button class="settings-tab" data-tab="news">News</button>
+                    </div>
+
+                    <!-- Profile Tab -->
+                    <div id="profile-tab" class="settings-tab-content active">
+                        <form id="profile-form">
+                            <div class="form-group">
+                                <label for="profile-full-name">Full Name</label>
+                                <input type="text" id="profile-full-name" name="full_name" placeholder="Enter your full name">
+                            </div>
+                            <div class="form-group">
+                                <label for="profile-email">Email</label>
+                                <div class="input-with-button">
+                                    <input type="email" id="profile-email" name="email" readonly>
+                                    <button type="button" id="reset-password-from-settings" class="btn btn-secondary btn-small">Reset Password</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="profile-age">Age</label>
+                                <input type="number" id="profile-age" name="age" min="1" max="150" placeholder="Enter your age">
+                            </div>
+                            <div class="form-group">
+                                <label for="profile-country">Country</label>
+                                <select id="profile-country" name="country">
+                                    <option value="">Select country</option>
+                                    <option value="US">United States</option>
+                                    <option value="DE">Germany</option>
+                                    <option value="FR">France</option>
+                                    <option value="GB">United Kingdom</option>
+                                    <option value="CA">Canada</option>
+                                    <option value="AU">Australia</option>
+                                    <option value="ES">Spain</option>
+                                    <option value="IT">Italy</option>
+                                    <option value="NL">Netherlands</option>
+                                    <option value="OTHER">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="profile-language">Language</label>
+                                <select id="profile-language" name="language">
+                                    <option value="">Select language</option>
+                                    <option value="en">English</option>
+                                    <option value="de">German</option>
+                                    <option value="fr">French</option>
+                                    <option value="es">Spanish</option>
+                                    <option value="it">Italian</option>
+                                    <option value="nl">Dutch</option>
+                                </select>
+                            </div>
+                            <div id="profile-error" class="error-message hidden"></div>
+                            <div id="profile-success" class="success-message hidden"></div>
+                            <button type="submit" class="btn btn-primary btn-full">
+                                <span>Save Profile</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- News Tab -->
+                    <div id="news-tab" class="settings-tab-content">
+                        <form id="preferences-form">
+                            <div class="form-group">
+                                <label for="prefs-country">News Country</label>
+                                <select id="prefs-country" name="country">
+                                    <option value="">Select country</option>
+                                    <option value="US">United States</option>
+                                    <option value="DE">Germany</option>
+                                    <option value="FR">France</option>
+                                    <option value="GB">United Kingdom</option>
+                                    <option value="CA">Canada</option>
+                                    <option value="AU">Australia</option>
+                                    <option value="WORLD">World</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="prefs-location">Location</label>
+                                <input type="text" id="prefs-location" name="location" placeholder="e.g., Atlanta, Georgia, California">
+                                <small class="form-hint">Enter a city or state for local news</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Topics</label>
+                                <div class="topics-grid">
+                                    <label class="topic-checkbox">
+                                        <input type="checkbox" name="topics" value="politics"> Politics
+                                    </label>
+                                    <label class="topic-checkbox">
+                                        <input type="checkbox" name="topics" value="technology"> Technology
+                                    </label>
+                                    <label class="topic-checkbox">
+                                        <input type="checkbox" name="topics" value="science"> Science
+                                    </label>
+                                    <label class="topic-checkbox">
+                                        <input type="checkbox" name="topics" value="health"> Health
+                                    </label>
+                                    <label class="topic-checkbox">
+                                        <input type="checkbox" name="topics" value="business"> Business
+                                    </label>
+                                    <label class="topic-checkbox">
+                                        <input type="checkbox" name="topics" value="entertainment"> Entertainment
+                                    </label>
+                                    <label class="topic-checkbox">
+                                        <input type="checkbox" name="topics" value="sports"> Sports
+                                    </label>
+                                    <label class="topic-checkbox">
+                                        <input type="checkbox" name="topics" value="environment"> Environment
+                                    </label>
+                                    <label class="topic-checkbox">
+                                        <input type="checkbox" name="topics" value="education"> Education
+                                    </label>
+                                    <label class="topic-checkbox">
+                                        <input type="checkbox" name="topics" value="world"> World News
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="prefs-keywords">Keywords</label>
+                                <input type="text" id="prefs-keywords" name="keywords" placeholder="e.g., AI, climate, elections">
+                                <small class="form-hint">Separate keywords with commas</small>
+                            </div>
+                            <div id="prefs-error" class="error-message hidden"></div>
+                            <div id="prefs-success" class="success-message hidden"></div>
+                            <button type="submit" class="btn btn-primary btn-full">
+                                <span>Save Preferences</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Toast Notifications -->
         <div id="toast-container" class="toast-container"></div>
     </div>
@@ -190,6 +333,7 @@
     <!-- Scripts -->
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
+    <script src="/js/settings.js"></script>
     <script src="/js/ui.js"></script>
     <script src="/js/app.js"></script>
     
