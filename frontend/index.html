@@ -75,6 +75,13 @@
 
         <!-- Main Content -->
         <main class="main-content">
+            <!-- Get My News Button -->
+            <div class="get-news-section">
+                <button id="get-my-news-btn" class="btn btn-primary get-my-news-btn hidden">
+                    🎯 Get My News
+                </button>
+            </div>
+
             <!-- Loading State -->
             <div id="loading" class="loading hidden">
                 <div class="spinner"></div>
@@ -355,6 +362,22 @@
                                 <span>Save Preferences</span>
                             </button>
                         </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Personalized News Modal -->
+        <div id="personalized-news-modal" class="modal hidden">
+            <div class="modal-content personalized-news-modal-content">
+                <div class="modal-header">
+                    <h2>🎯 Your Personalized News</h2>
+                    <button id="close-personalized-modal" class="btn btn-icon">✕</button>
+                </div>
+                <div class="modal-body">
+                    <p class="personalized-intro">Based on your preferences, here are your top 5 news stories:</p>
+                    <div id="personalized-news-list" class="personalized-news-list">
+                        <!-- Personalized news items will be inserted here -->
                     </div>
                 </div>
             </div>

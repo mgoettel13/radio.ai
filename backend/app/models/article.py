@@ -12,6 +12,7 @@ from app.database import Base
 if TYPE_CHECKING:
     from app.models.summary import Summary
     from app.models.user_article import UserArticle
+    from app.models.user_personalized_news import UserPersonalizedNews
 
 
 class Article(Base):
@@ -73,6 +74,11 @@ class Article(Base):
     )
     user_articles: Mapped[list["UserArticle"]] = relationship(
         "UserArticle",
+        back_populates="article",
+        cascade="all, delete-orphan"
+    )
+    personalized_news: Mapped[list["UserPersonalizedNews"]] = relationship(
+        "UserPersonalizedNews",
         back_populates="article",
         cascade="all, delete-orphan"
     )

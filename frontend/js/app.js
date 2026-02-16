@@ -8,6 +8,7 @@ class App {
         this.currentArticle = null;
         this.summary = null;
         this.articleModal = new ModalManager('article-modal');
+        this.personalizedNewsModal = new ModalManager('personalized-news-modal');
 
         this.init();
     }
@@ -18,9 +19,22 @@ class App {
         document.getElementById('empty-refresh-btn').addEventListener('click', () => this.refreshArticles());
         document.getElementById('summarize-btn').addEventListener('click', () => this.summarizeCurrentArticle());
         document.getElementById('listen-btn').addEventListener('click', () => this.listenToSummary());
+        document.getElementById('get-my-news-btn').addEventListener('click', () => this.getPersonalizedNews());
+        document.getElementById('close-personalized-modal').addEventListener('click', () => this.closePersonalizedModal());
+
+        // Listen for auth state changes
+        window.addEventListener('auth:stateChanged', (e) => this.onAuthStateChanged(e.detail));
 
         // Don't load articles on init - wait for authentication
         // Articles will be loaded after successful login via auth.js
+    }
+
+    onAuthStateChanged(detail) {
+        if (detail && detail.isAuthenticated) {
+            this.showGetMyNewsButton();
+        } else {
+            this.hideGetMyNewsButton();
+        }
     }
 
     async loadArticles() {
@@ -188,6 +202,61 @@ class App {
             btn.disabled = false;
             btn.textContent = '🔊 Listen';
         }
+    }
+
+    async getPersonalizedNews() {
+        const btn = document.getElementById('get-my-news-btn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Processing...';
+
+        try {
+            const data = await api.getPersonalizedNews();
+            this.renderPersonalizedNews(data.articles);
+            this.personalizedNewsModal.open();
+            showToast('Personalized news loaded!', 'success');
+        } catch (error) {
+            showToast('Failed to get personalized news: ' + error.message, 'error');
+            console.error('Get personalized news error:', error);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '🎯 Get My News';
+        }
+    }
+
+    renderPersonalizedNews(articles) {
+        const list = document.getElementById('personalized-news-list');
+        list.innerHTML = '';
+
+        articles.forEach((article, index) => {
+            const item = document.createElement('div');
+            item.className = 'personalized-news-item';
+            item.innerHTML = `
+                <div class="personalized-rank">#${index + 1}</div>
+                <div class="personalized-content">
+                    <h3 class="personalized-title">${escapeHtml(article.title)}</h3>
+                    <div class="personalized-meta">
+                        <span>${article.author || 'NPR'}</span>
+                        <span>•</span>
+                        <span>${formatDate(article.published_at)}</span>
+                    </div>
+                    ${article.description ? `<p class="personalized-description">${escapeHtml(truncate(article.description, 200))}</p>` : ''}
+                    <a href="${escapeHtml(article.link)}" target="_blank" rel="noopener" class="personalized-link">Read More →</a>
+                </div>
+            `;
+            list.appendChild(item);
+        });
+    }
+
+    closePersonalizedModal() {
+        this.personalizedNewsModal.close();
+    }
+
+    showGetMyNewsButton() {
+        document.getElementById('get-my-news-btn').classList.remove('hidden');
+    }
+
+    hideGetMyNewsButton() {
+        document.getElementById('get-my-news-btn').classList.add('hidden');
     }
 }
 

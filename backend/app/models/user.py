@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from app.models.password_reset import PasswordReset
     from app.models.user_profile import UserProfile
     from app.models.user_preferences import UserPreferences
+    from app.models.user_personalized_news import UserPersonalizedNews
 
 
 class User(Base):
@@ -44,6 +45,9 @@ class User(Base):
     )
     preferences: Mapped["UserPreferences"] = relationship(
         "UserPreferences", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
+    personalized_news: Mapped[list["UserPersonalizedNews"]] = relationship(
+        "UserPersonalizedNews", back_populates="user", cascade="all, delete-orphan"
     )
     
     def __repr__(self) -> str:

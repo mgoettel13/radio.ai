@@ -180,6 +180,11 @@ class API {
             body: JSON.stringify(data)
         });
     }
+
+    // Personalized News
+    async getPersonalizedNews() {
+        return this.request('/api/articles/personalized', { method: 'POST' });
+    }
 }
 
 // Create global API instance

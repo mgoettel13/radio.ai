@@ -41,3 +41,10 @@ class ArticleRefreshResponse(BaseModel):
     new_articles: int
     total_articles: int
     fetched_at: datetime
+
+
+class PersonalizedNewsResponse(BaseModel):
+    """Response schema for personalized news."""
+    articles: list[ArticleRead]
+    selected_at: datetime
+    total_selected: int

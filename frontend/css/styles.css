@@ -648,3 +648,120 @@ body {
         width: 100%;
     }
 }
+
+/* Get My News Button */
+.get-news-section {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.get-my-news-btn {
+    background: linear-gradient(135deg, var(--accent-color) 0%, #dd6b20 100%);
+    font-size: 1rem;
+    padding: 0.75rem 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.get-my-news-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Personalized News Modal */
+.personalized-news-modal-content {
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.personalized-intro {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    font-size: 0.9375rem;
+}
+
+.personalized-news-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.personalized-news-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--background);
+    border-radius: var(--radius);
+    transition: all 0.2s;
+}
+
+.personalized-news-item:hover {
+    background: #edf2f7;
+}
+
+.personalized-rank {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    background: var(--accent-color);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.875rem;
+}
+
+.personalized-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.personalized-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: var(--text-primary);
+    line-height: 1.4;
+}
+
+.personalized-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.personalized-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 0.5rem;
+}
+
+.personalized-link {
+    font-size: 0.875rem;
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.personalized-link:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .personalized-news-item {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .personalized-rank {
+        width: 32px;
+        height: 32px;
+        font-size: 0.75rem;
+    }
+}
