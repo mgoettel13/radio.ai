@@ -70,6 +70,15 @@ class SettingsManager {
         }
     }
     
+    // Method to check current auth state (called after initialization)
+    checkAuthState() {
+        if (typeof authManager !== 'undefined' && authManager.isAuthenticated) {
+            this.settingsBtn.classList.remove('hidden');
+        } else {
+            this.settingsBtn.classList.add('hidden');
+        }
+    }
+    
     checkInitialAuthState() {
         // Check if user is already authenticated (from localStorage token)
         if (api.token) {
@@ -242,6 +251,6 @@ document.addEventListener('DOMContentLoaded', () => {
     settingsManager = new SettingsManager();
     // Check initial auth state after a short delay to allow auth manager to initialize
     setTimeout(() => {
-        settingsManager.checkInitialAuthState();
+        settingsManager.checkAuthState();
     }, 100);
 });

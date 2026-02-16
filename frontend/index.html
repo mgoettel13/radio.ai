@@ -20,6 +20,40 @@
 </head>
 <body>
     <div id="app">
+        <!-- Login Screen (Full-screen overlay) -->
+        <div id="login-screen" class="login-screen">
+            <div class="login-screen-content">
+                <div class="login-screen-header">
+                    <h1>📰 NPR News Summarizer</h1>
+                    <p>Get AI-powered summaries of NPR news articles</p>
+                </div>
+                
+                <div class="login-screen-form">
+                    <form id="login-screen-auth-form">
+                        <div class="form-group">
+                            <label for="login-screen-email">Email</label>
+                            <input type="email" id="login-screen-email" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="login-screen-password">Password</label>
+                            <input type="password" id="login-screen-password" name="password" required minlength="8">
+                        </div>
+                        <div id="login-screen-error" class="error-message hidden"></div>
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <span id="login-screen-submit-text">Login</span>
+                        </button>
+                    </form>
+                    <p class="auth-switch">
+                        <span id="login-screen-switch-text">Don't have an account?</span>
+                        <button id="login-screen-switch-btn" class="btn btn-link">Register</button>
+                    </p>
+                    <p class="auth-forgot">
+                        <button id="login-screen-forgot-btn" class="btn btn-link">Forgot Password?</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <!-- Header -->
         <header class="app-header">
             <div class="header-content">

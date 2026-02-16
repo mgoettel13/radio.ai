@@ -19,8 +19,8 @@ class App {
         document.getElementById('summarize-btn').addEventListener('click', () => this.summarizeCurrentArticle());
         document.getElementById('listen-btn').addEventListener('click', () => this.listenToSummary());
 
-        // Load initial articles
-        this.loadArticles();
+        // Don't load articles on init - wait for authentication
+        // Articles will be loaded after successful login via auth.js
     }
 
     async loadArticles() {

@@ -7,7 +7,15 @@ class AuthManager {
         this.user = null;
         this.isAuthenticated = false;
         
-        // Auth modal elements
+        // Login screen elements (full-screen overlay)
+        this.loginScreen = document.getElementById('login-screen');
+        this.loginScreenForm = document.getElementById('login-screen-auth-form');
+        this.loginScreenError = document.getElementById('login-screen-error');
+        this.loginScreenSubmitText = document.getElementById('login-screen-submit-text');
+        this.loginScreenSwitchText = document.getElementById('login-screen-switch-text');
+        this.loginScreenSwitchBtn = document.getElementById('login-screen-switch-btn');
+
+        // Auth modal elements (for forgot password flow)
         this.modal = document.getElementById('auth-modal');
         this.form = document.getElementById('auth-form');
         this.title = document.getElementById('auth-title');
@@ -36,8 +44,13 @@ class AuthManager {
     }
 
     init() {
+        // Login screen event listeners
+        this.loginScreenForm.addEventListener('submit', (e) => this.handleLoginScreenSubmit(e));
+        this.loginScreenSwitchBtn.addEventListener('click', () => this.toggleLoginScreenMode());
+        document.getElementById('login-screen-forgot-btn').addEventListener('click', () => this.openForgotModal());
+
         // Auth modal event listeners
-        this.authBtn.addEventListener('click', () => this.openModal());
+        this.authBtn.addEventListener('click', () => this.logout());
         document.getElementById('close-auth-modal').addEventListener('click', () => this.closeModal());
         this.switchBtn.addEventListener('click', () => this.toggleMode());
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
@@ -101,7 +114,67 @@ class AuthManager {
             } catch (error) {
                 console.log('Session expired');
                 api.setToken(null);
+                this.showLoginScreen();
             }
+        } else {
+            this.showLoginScreen();
+        }
+    }
+
+    showLoginScreen() {
+        this.loginScreen.classList.remove('hidden');
+    }
+
+    hideLoginScreen() {
+        this.loginScreen.classList.add('hidden');
+    }
+
+    toggleLoginScreenMode() {
+        this.isLoginMode = !this.isLoginMode;
+        if (this.isLoginMode) {
+            this.loginScreenSubmitText.textContent = 'Login';
+            this.loginScreenSwitchText.textContent = "Don't have an account?";
+            this.loginScreenSwitchBtn.textContent = 'Register';
+        } else {
+            this.loginScreenSubmitText.textContent = 'Register';
+            this.loginScreenSwitchText.textContent = 'Already have an account?';
+            this.loginScreenSwitchBtn.textContent = 'Login';
+        }
+        this.loginScreenError.classList.add('hidden');
+    }
+
+    async handleLoginScreenSubmit(e) {
+        e.preventDefault();
+        this.loginScreenError.classList.add('hidden');
+
+        const email = document.getElementById('login-screen-email').value;
+        const password = document.getElementById('login-screen-password').value;
+
+        try {
+            if (this.isLoginMode) {
+                await api.login(email, password);
+            } else {
+                await api.register(email, password);
+                // Auto-login after registration
+                await api.login(email, password);
+            }
+
+            // Get user info
+            this.user = await api.getCurrentUser();
+            this.isAuthenticated = true;
+
+            this.updateUI();
+            this.hideLoginScreen();
+            showToast('Welcome!', 'success');
+
+            // Load articles after successful login
+            if (app) {
+                app.loadArticles();
+            }
+
+        } catch (error) {
+            this.loginScreenError.textContent = error.message;
+            this.loginScreenError.classList.remove('hidden');
         }
     }
 
@@ -251,10 +324,10 @@ class AuthManager {
             this.resetSuccess.textContent = 'Password has been reset successfully! You can now login with your new password.';
             this.resetSuccess.classList.remove('hidden');
             
-            // Close modal after 2 seconds and open login
+            // Close modal after 2 seconds and show login screen
             setTimeout(() => {
                 this.closeResetModal();
-                this.openModal();
+                this.showLoginScreen();
             }, 2000);
             
         } catch (error) {
@@ -294,8 +367,8 @@ class AuthManager {
         this.updateUI();
         showToast('Logged out', 'success');
 
-        // Refresh articles without user data
-        app.loadArticles();
+        // Show login screen instead of refreshing articles
+        this.showLoginScreen();
     }
 }
 

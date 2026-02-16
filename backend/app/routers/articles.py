@@ -59,10 +59,10 @@ async def get_article_with_user_status(
 @router.get("", response_model=ArticleList)
 async def list_articles(
     session: AsyncSession = Depends(get_async_session),
-    current_user: Optional[User] = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
-    """List the latest articles (up to 20), sorted by date (newest first)."""
-    user_id = current_user.id if current_user else None
+    """List the latest articles (up to 20), sorted by date (newest first). Requires authentication."""
+    user_id = current_user.id
     
     result = await session.execute(
         select(Article)
@@ -92,9 +92,10 @@ async def list_articles(
 
 @router.post("/refresh", response_model=ArticleRefreshResponse)
 async def refresh_articles(
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_active_user)
 ):
-    """Manually refresh articles from NPR RSS feed."""
+    """Manually refresh articles from NPR RSS feed. Requires authentication."""
     fetcher = RSSFetcher()
 
     try:
@@ -145,10 +146,10 @@ async def refresh_articles(
 async def get_article(
     article_id: uuid.UUID,
     session: AsyncSession = Depends(get_async_session),
-    current_user: Optional[User] = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
-    """Get a single article by ID."""
-    user_id = current_user.id if current_user else None
+    """Get a single article by ID. Requires authentication."""
+    user_id = current_user.id
     
     result = await session.execute(
         select(Article)
@@ -169,9 +170,10 @@ async def get_article(
 @router.get("/{article_id}/summary", response_model=SummaryRead)
 async def get_summary(
     article_id: uuid.UUID,
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_active_user)
 ):
-    """Get the summary for an article (creates one if not exists)."""
+    """Get the summary for an article (creates one if not exists). Requires authentication."""
     # Get article with summary loaded
     result = await session.execute(
         select(Article).options(selectinload(Article.summary)).where(Article.id == article_id)
