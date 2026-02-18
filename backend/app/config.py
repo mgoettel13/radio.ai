@@ -37,8 +37,8 @@ class Settings(BaseSettings):
     # App Settings
     app_port: int = 8000
     app_host: str = "0.0.0.0"
-    rss_refresh_minutes: int = 10
-    max_articles: int = 20
+    rss_refresh_minutes: int = 20
+    max_articles: int = 30
     npr_feed_url: str = "https://feeds.npr.org/1002/rss.xml"
 
     # CORS

@@ -8,25 +8,26 @@ class App {
         this.currentArticle = null;
         this.summary = null;
         this.articleModal = new ModalManager('article-modal');
-        this.personalizedNewsModal = new ModalManager('personalized-news-modal');
 
         this.init();
     }
 
     init() {
+        console.log('App.init() called');
         // Event listeners
         document.getElementById('refresh-btn').addEventListener('click', () => this.refreshArticles());
         document.getElementById('empty-refresh-btn').addEventListener('click', () => this.refreshArticles());
         document.getElementById('summarize-btn').addEventListener('click', () => this.summarizeCurrentArticle());
         document.getElementById('listen-btn').addEventListener('click', () => this.listenToSummary());
         document.getElementById('get-my-news-btn').addEventListener('click', () => this.getPersonalizedNews());
-        document.getElementById('close-personalized-modal').addEventListener('click', () => this.closePersonalizedModal());
 
         // Listen for auth state changes
         window.addEventListener('auth:stateChanged', (e) => this.onAuthStateChanged(e.detail));
 
-        // Don't load articles on init - wait for authentication
-        // Articles will be loaded after successful login via auth.js
+        // Don't load articles on init - only load when user clicks "Get My News"
+        // Show empty state initially
+        this.articles = [];
+        showEmptyState();
     }
 
     onAuthStateChanged(detail) {
@@ -38,6 +39,7 @@ class App {
     }
 
     async loadArticles() {
+        console.log('loadArticles called from:', new Error().stack);
         showLoading();
 
         try {
@@ -211,9 +213,11 @@ class App {
 
         try {
             const data = await api.getPersonalizedNews();
-            this.renderPersonalizedNews(data.articles);
-            this.personalizedNewsModal.open();
-            showToast('Personalized news loaded!', 'success');
+            // Store articles and display in main list
+            this.articles = data.articles;
+            this.renderArticles();
+            showArticleList();
+            showToast(`Loaded ${data.articles.length} personalized articles!`, 'success');
         } catch (error) {
             showToast('Failed to get personalized news: ' + error.message, 'error');
             console.error('Get personalized news error:', error);
@@ -224,31 +228,13 @@ class App {
     }
 
     renderPersonalizedNews(articles) {
-        const list = document.getElementById('personalized-news-list');
-        list.innerHTML = '';
-
-        articles.forEach((article, index) => {
-            const item = document.createElement('div');
-            item.className = 'personalized-news-item';
-            item.innerHTML = `
-                <div class="personalized-rank">#${index + 1}</div>
-                <div class="personalized-content">
-                    <h3 class="personalized-title">${escapeHtml(article.title)}</h3>
-                    <div class="personalized-meta">
-                        <span>${article.author || 'NPR'}</span>
-                        <span>•</span>
-                        <span>${formatDate(article.published_at)}</span>
-                    </div>
-                    ${article.description ? `<p class="personalized-description">${escapeHtml(truncate(article.description, 200))}</p>` : ''}
-                    <a href="${escapeHtml(article.link)}" target="_blank" rel="noopener" class="personalized-link">Read More →</a>
-                </div>
-            `;
-            list.appendChild(item);
-        });
+        // Now using main article list instead of popup
+        this.articles = articles;
+        this.renderArticles();
     }
 
     closePersonalizedModal() {
-        this.personalizedNewsModal.close();
+        // No longer needed - modal removed
     }
 
     showGetMyNewsButton() {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'npr-summarizer-v1';
+const CACHE_NAME = 'npr-summarizer-v3';
 const STATIC_ASSETS = [
     '/',
     '/index.html',

@@ -167,11 +167,6 @@ class AuthManager {
             this.hideLoginScreen();
             showToast('Welcome!', 'success');
 
-            // Load articles after successful login
-            if (app) {
-                app.loadArticles();
-            }
-
         } catch (error) {
             this.loginScreenError.textContent = error.message;
             this.loginScreenError.classList.remove('hidden');
@@ -265,9 +260,6 @@ class AuthManager {
             this.updateUI();
             this.closeModal();
             showToast('Welcome!', 'success');
-
-            // Refresh articles to get user-specific data
-            app.loadArticles();
 
         } catch (error) {
             this.showError(error.message);
