@@ -257,17 +257,6 @@ body {
     overflow: hidden;
 }
 
-/* Empty State */
-.empty-state {
-    text-align: center;
-    padding: 3rem;
-    color: var(--text-secondary);
-}
-
-.empty-state p {
-    margin-bottom: 1rem;
-}
-
 /* Modal */
 .modal {
     position: fixed;

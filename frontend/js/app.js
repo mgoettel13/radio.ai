@@ -15,8 +15,6 @@ class App {
     init() {
         console.log('App.init() called');
         // Event listeners
-        document.getElementById('refresh-btn').addEventListener('click', () => this.refreshArticles());
-        document.getElementById('empty-refresh-btn').addEventListener('click', () => this.refreshArticles());
         document.getElementById('summarize-btn').addEventListener('click', () => this.summarizeCurrentArticle());
         document.getElementById('listen-btn').addEventListener('click', () => this.listenToSummary());
         document.getElementById('get-my-news-btn').addEventListener('click', () => this.getPersonalizedNews());
@@ -25,9 +23,7 @@ class App {
         window.addEventListener('auth:stateChanged', (e) => this.onAuthStateChanged(e.detail));
 
         // Don't load articles on init - only load when user clicks "Get My News"
-        // Show empty state initially
         this.articles = [];
-        showEmptyState();
     }
 
     onAuthStateChanged(detail) {
@@ -50,12 +46,7 @@ class App {
             this.updateLastUpdated(data.last_updated);
 
             hideLoading();
-
-            if (this.articles.length === 0) {
-                showEmptyState();
-            } else {
-                showArticleList();
-            }
+            showArticleList();
         } catch (error) {
             hideLoading();
             showToast('Failed to load articles', 'error');
@@ -79,24 +70,6 @@ class App {
             el.textContent = `Last updated: ${formatDate(timestamp)}`;
         } else {
             el.textContent = '';
-        }
-    }
-
-    async refreshArticles() {
-        const btn = document.getElementById('refresh-btn');
-        btn.disabled = true;
-        btn.textContent = '⏳';
-
-        try {
-            const result = await api.refreshArticles();
-            showToast(`Added ${result.new_articles} new articles`, 'success');
-            await this.loadArticles();
-        } catch (error) {
-            showToast('Failed to refresh articles', 'error');
-            console.error('Refresh error:', error);
-        } finally {
-            btn.disabled = false;
-            btn.textContent = '🔄';
         }
     }
 

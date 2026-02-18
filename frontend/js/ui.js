@@ -137,19 +137,12 @@ class ModalManager {
 function showLoading() {
     document.getElementById('loading').classList.remove('hidden');
     document.getElementById('article-list').classList.add('hidden');
-    document.getElementById('empty-state').classList.add('hidden');
 }
 
 function hideLoading() {
     document.getElementById('loading').classList.add('hidden');
 }
 
-function showEmptyState() {
-    document.getElementById('empty-state').classList.remove('hidden');
-    document.getElementById('article-list').classList.add('hidden');
-}
-
 function showArticleList() {
     document.getElementById('article-list').classList.remove('hidden');
-    document.getElementById('empty-state').classList.add('hidden');
 }
