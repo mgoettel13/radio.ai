@@ -256,6 +256,96 @@ Only include the top 5 articles. Use the article number as the id."""
             # Fallback: return first 5 articles
             return [{"rank": i + 1, **articles[i]} for i in range(min(5, len(articles)))]
 
+    async def create_radio_script(
+        self,
+        articles: List[Dict[str, Any]]
+    ) -> tuple[str, str, Optional[int]]:
+        """
+        Create a radio news script from top 5 articles.
+
+        Args:
+            articles: List of article dicts with 'title', 'description', 'link'
+
+        Returns:
+            Tuple of (radio_script, model_used, tokens_used)
+        """
+        if not self.api_key:
+            raise PerplexityError("Perplexity API key not configured")
+
+        if not articles:
+            raise PerplexityError("No articles provided for radio script")
+
+        # Build the prompt for radio script
+        prompt = self._build_radio_script_prompt(articles)
+
+        payload = {
+            "model": "sonar-pro",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a professional radio news announcer. Create a 60-90 second news broadcast script reading the top 5 news stories. Start with a friendly greeting and intro, then present each story in a clear, engaging manner. End with a smooth closing. Write in a conversational, radio-style format - not bullet points."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            "max_tokens": 1500,
+            "temperature": 0.5
+        }
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{self.BASE_URL}/chat/completions",
+                    headers=self.headers,
+                    json=payload,
+                    timeout=120.0
+                )
+                response.raise_for_status()
+                data = response.json()
+
+            radio_script = data["choices"][0]["message"]["content"].strip()
+            model_used = data.get("model", "sonar-pro")
+            tokens_used = data.get("usage", {}).get("total_tokens")
+
+            logger.info(f"Generated radio script using {model_used}, tokens: {tokens_used}")
+            return radio_script, model_used, tokens_used
+
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Perplexity API error: {e.response.status_code} - {e.response.text}")
+            raise PerplexityError(f"API error: {e.response.status_code}")
+        except (KeyError, IndexError) as e:
+            logger.error(f"Unexpected Perplexity response format: {e}")
+            raise PerplexityError("Invalid response format from Perplexity API")
+        except Exception as e:
+            logger.error(f"Perplexity request failed: {e}")
+            raise PerplexityError(f"Request failed: {str(e)}")
+
+    def _build_radio_script_prompt(
+        self,
+        articles: List[Dict[str, Any]]
+    ) -> str:
+        """Build the prompt for radio script generation."""
+        # Build articles list with titles and descriptions
+        articles_text = []
+        for i, article in enumerate(articles, 1):
+            title = article.get("title", "")
+            description = article.get("description", "") or "No description available"
+            # Truncate description to keep prompt manageable
+            description = description[:300] + "..." if len(description) > 300 else description
+            articles_text.append(f"Story {i}:\nTitle: {title}\nSummary: {description}")
+
+        articles_str = "\n\n".join(articles_text)
+
+        prompt = f"""Create a radio news broadcast script for the following top 5 stories:
+
+{articles_str}
+
+Write in a natural, radio announcer style. Each story should be 1-2 sentences that capture the essence. Include a brief intro and closing."""
+
+        return prompt
+
 
 class PerplexityError(Exception):
     """Raised when Perplexity API request fails."""

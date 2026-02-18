@@ -656,3 +656,63 @@ body {
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
+
+/* Radio News Modal */
+.radio-news-modal-content {
+    max-width: 600px;
+}
+
+.radio-script-content {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.radio-news-articles {
+    margin-bottom: 1rem;
+}
+
+.radio-news-articles h4 {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+#radio-articles-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#radio-articles-list li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+#radio-articles-list li:last-child {
+    border-bottom: none;
+}
+
+#radio-articles-list a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+#radio-articles-list a:hover {
+    text-decoration: underline;
+}
+
+.radio-news-actions {
+    margin-bottom: 1rem;
+}
+
+.radio-news-actions .btn {
+    width: 100%;
+}

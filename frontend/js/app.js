@@ -8,6 +8,8 @@ class App {
         this.currentArticle = null;
         this.summary = null;
         this.articleModal = new ModalManager('article-modal');
+        this.radioNewsModal = new ModalManager('radio-news-modal');
+        this.radioScript = null;
 
         this.init();
     }
@@ -18,6 +20,7 @@ class App {
         document.getElementById('summarize-btn').addEventListener('click', () => this.summarizeCurrentArticle());
         document.getElementById('listen-btn').addEventListener('click', () => this.listenToSummary());
         document.getElementById('get-my-news-btn').addEventListener('click', () => this.getPersonalizedNews());
+        document.getElementById('my-radio-news-btn').addEventListener('click', () => this.getRadioNews());
 
         // Listen for auth state changes
         window.addEventListener('auth:stateChanged', (e) => this.onAuthStateChanged(e.detail));
@@ -29,8 +32,10 @@ class App {
     onAuthStateChanged(detail) {
         if (detail && detail.isAuthenticated) {
             this.showGetMyNewsButton();
+            this.showMyRadioNewsButton();
         } else {
             this.hideGetMyNewsButton();
+            this.hideMyRadioNewsButton();
         }
     }
 
@@ -216,6 +221,93 @@ class App {
 
     hideGetMyNewsButton() {
         document.getElementById('get-my-news-btn').classList.add('hidden');
+    }
+
+    // Radio News Methods
+    showMyRadioNewsButton() {
+        document.getElementById('my-radio-news-btn').classList.remove('hidden');
+    }
+
+    hideMyRadioNewsButton() {
+        document.getElementById('my-radio-news-btn').classList.add('hidden');
+    }
+
+    async getRadioNews() {
+        const btn = document.getElementById('my-radio-news-btn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Generating...';
+
+        try {
+            const data = await api.getRadioNews();
+            this.displayRadioNewsModal(data);
+            showToast('Radio news ready!', 'success');
+        } catch (error) {
+            showToast('Failed to generate radio news: ' + error.message, 'error');
+            console.error('Get radio news error:', error);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '📻 My Radio News';
+        }
+    }
+
+    displayRadioNewsModal(data) {
+        // Store the radio script
+        this.radioScript = data.radio_script;
+        
+        // Populate modal with radio script
+        document.getElementById('radio-script-content').textContent = data.radio_script;
+        
+        // Populate articles list
+        const articlesList = document.getElementById('radio-articles-list');
+        articlesList.innerHTML = '';
+        data.articles.forEach(article => {
+            const li = document.createElement('li');
+            li.innerHTML = `<a href="#" onclick="app.openArticle(app.articles.find(a => a.id === '${article.id}'))">${escapeHtml(article.title)}</a>`;
+            articlesList.appendChild(li);
+        });
+        
+        // Reset audio section
+        document.getElementById('radio-audio-section').classList.add('hidden');
+        
+        // Set up play button
+        document.getElementById('play-radio-btn').onclick = () => this.playRadioNews();
+        
+        // Open modal
+        this.radioNewsModal.open();
+    }
+
+    async playRadioNews() {
+        if (!this.radioScript) {
+            showToast('No radio script available', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('play-radio-btn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Generating audio...';
+
+        try {
+            const result = await api.textToSpeech(this.radioScript);
+
+            const audioPlayer = document.getElementById('radio-audio-player');
+            audioPlayer.src = result.audio_url;
+            audioPlayer.load();
+
+            document.getElementById('radio-audio-section').classList.remove('hidden');
+
+            // Auto-play
+            audioPlayer.play().catch(() => {
+                // Autoplay blocked, user needs to click
+            });
+
+            showToast('Audio ready!', 'success');
+        } catch (error) {
+            showToast('Failed to generate audio', 'error');
+            console.error('Radio TTS error:', error);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '▶️ Play Radio News';
+        }
     }
 }
 

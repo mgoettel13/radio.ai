@@ -77,6 +77,9 @@
                 <button id="get-my-news-btn" class="btn btn-primary get-my-news-btn hidden">
                     🎯 Get My News
                 </button>
+                <button id="my-radio-news-btn" class="btn btn-primary get-my-news-btn hidden">
+                    📻 My Radio News
+                </button>
             </div>
 
             <!-- Loading State -->
@@ -124,6 +127,31 @@
                     <!-- Audio Player -->
                     <div id="audio-section" class="audio-section hidden">
                         <audio id="audio-player" controls></audio>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Radio News Modal -->
+        <div id="radio-news-modal" class="modal hidden">
+            <div class="modal-content radio-news-modal-content">
+                <div class="modal-header">
+                    <h2>📻 My Radio News</h2>
+                    <button id="close-radio-modal" class="btn btn-icon">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div id="radio-script-content" class="radio-script-content"></div>
+                    <div class="radio-news-articles">
+                        <h4>Top 5 Stories:</h4>
+                        <ul id="radio-articles-list"></ul>
+                    </div>
+                    <div class="radio-news-actions">
+                        <button id="play-radio-btn" class="btn btn-primary">
+                            ▶️ Play Radio News
+                        </button>
+                    </div>
+                    <div id="radio-audio-section" class="audio-section hidden">
+                        <audio id="radio-audio-player" controls></audio>
                     </div>
                 </div>
             </div>

@@ -16,7 +16,7 @@ from app.models import Article, Summary, UserArticle
 from app.models.user import User
 from app.models.user_preferences import UserPreferences
 from app.models.user_personalized_news import UserPersonalizedNews
-from app.schemas.article import ArticleList, ArticleRead, ArticleRefreshResponse, PersonalizedNewsResponse
+from app.schemas.article import ArticleList, ArticleRead, ArticleRefreshResponse, PersonalizedNewsResponse, RadioNewsResponse
 from app.schemas.summary import SummaryRead
 from app.services import PerplexityClient, RSSFetcher
 
@@ -460,6 +460,183 @@ async def get_personalized_news(
     
     return PersonalizedNewsResponse(
         articles=items,
+        selected_at=selected_at,
+        total_selected=len(items)
+    )
+
+
+@router.post("/radio-news", response_model=RadioNewsResponse)
+async def get_radio_news(
+    session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get personalized radio news broadcast.
+    
+    This endpoint:
+    1. Gets top 5 personalized news (reuses /personalized logic)
+    2. Creates radio script using Perplexity
+    3. Returns script + articles
+    
+    Requires authentication.
+    """
+    user_id = current_user.id
+    
+    # Step 1: Get personalized news (reuse existing logic)
+    # Refresh RSS feed
+    fetcher = RSSFetcher()
+    try:
+        new_articles_data = await fetcher.fetch_feed()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Failed to fetch RSS feed: {str(e)}"
+        )
+    
+    # Save any new articles to database
+    for article_data in new_articles_data:
+        result = await session.execute(
+            select(Article).where(Article.guid == article_data.guid)
+        )
+        existing = result.scalar_one_or_none()
+        
+        if not existing:
+            article = Article(
+                guid=article_data.guid,
+                title=article_data.title,
+                link=str(article_data.link),
+                description=article_data.description,
+                published_at=article_data.published_at,
+                author=article_data.author,
+                category=article_data.category
+            )
+            session.add(article)
+    
+    await session.commit()
+    
+    # Get user preferences
+    result = await session.execute(
+        select(UserPreferences).where(UserPreferences.user_id == user_id)
+    )
+    preferences = result.scalar_one_or_none()
+    
+    # Build preferences dict
+    prefs_dict = {
+        "topics": preferences.topics if preferences else [],
+        "keywords": preferences.keywords if preferences else [],
+        "location": preferences.location if preferences and preferences.location else "",
+        "country": preferences.country if preferences and preferences.country else ""
+    }
+    
+    # Get articles for ranking (limit to 20 most recent)
+    result = await session.execute(
+        select(Article)
+        .options(selectinload(Article.summary))
+        .order_by(Article.published_at.desc())
+        .limit(20)
+    )
+    articles = result.scalars().all()
+    
+    if not articles:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No articles available"
+        )
+    
+    # Convert articles to dict format for Perplexity
+    articles_data = []
+    for article in articles:
+        articles_data.append({
+            "id": article.id,
+            "title": article.title,
+            "description": article.description,
+            "link": str(article.link)
+        })
+    
+    # Use Perplexity to rank articles
+    perplexity = PerplexityClient()
+    try:
+        ranked_articles = await perplexity.rank_articles(articles_data, prefs_dict)
+    except Exception as e:
+        logger.error(f"Perplexity ranking failed: {e}")
+        # Fallback: just take first 5 articles
+        ranked_articles = [{"rank": i + 1, **articles_data[i]} for i in range(min(5, len(articles_data)))]
+    
+    # Get top 5 articles
+    top_5_articles = ranked_articles[:5]
+    
+    # Step 2: Create radio script from top 5 articles
+    radio_articles = []
+    for ranked_article in top_5_articles:
+        article_id = ranked_article["id"]
+        # Get the article details
+        result = await session.execute(
+            select(Article)
+            .options(selectinload(Article.summary))
+            .where(Article.id == article_id)
+        )
+        article = result.scalar_one_or_none()
+        if article:
+            radio_articles.append({
+                "title": article.title,
+                "description": article.description,
+                "link": str(article.link)
+            })
+    
+    try:
+        radio_script, model_used, tokens_used = await perplexity.create_radio_script(radio_articles)
+    except Exception as e:
+        logger.error(f"Perplexity radio script failed: {e}")
+        # Fallback: create a simple script
+        radio_script = "Here are your top news stories: " + ". ".join([a["title"] for a in radio_articles])
+    
+    # Step 3: Store personalized news for user (reuse existing logic)
+    selected_at = datetime.utcnow()
+    
+    # Delete old personalized news for user
+    result = await session.execute(
+        select(UserPersonalizedNews).where(UserPersonalizedNews.user_id == user_id)
+    )
+    old_personalized = result.scalars().all()
+    for old in old_personalized:
+        await session.delete(old)
+    
+    # Store new personalized news
+    stored_articles = []
+    
+    for ranked_article in top_5_articles:
+        article_id = ranked_article["id"]
+        rank_position = ranked_article["rank"]
+        
+        personalized = UserPersonalizedNews(
+            user_id=user_id,
+            article_id=article_id,
+            rank_position=rank_position,
+            selected_at=selected_at
+        )
+        session.add(personalized)
+        
+        # Get the article details
+        result = await session.execute(
+            select(Article)
+            .options(selectinload(Article.summary))
+            .where(Article.id == article_id)
+        )
+        article = result.scalar_one_or_none()
+        if article:
+            stored_articles.append(article)
+    
+    await session.commit()
+    
+    # Convert to response format
+    items = []
+    for article in stored_articles:
+        article_read = await get_article_with_user_status(session, article, user_id)
+        items.append(article_read)
+    
+    return RadioNewsResponse(
+        articles=items,
+        radio_script=radio_script,
         selected_at=selected_at,
         total_selected=len(items)
     )

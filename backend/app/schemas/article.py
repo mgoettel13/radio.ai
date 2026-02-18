@@ -48,3 +48,11 @@ class PersonalizedNewsResponse(BaseModel):
     articles: list[ArticleRead]
     selected_at: datetime
     total_selected: int
+
+
+class RadioNewsResponse(BaseModel):
+    """Response schema for radio news."""
+    articles: list[ArticleRead]
+    radio_script: str
+    selected_at: datetime
+    total_selected: int

@@ -185,6 +185,11 @@ class API {
     async getPersonalizedNews() {
         return this.request('/api/articles/personalized', { method: 'POST' });
     }
+
+    // Radio News
+    async getRadioNews() {
+        return this.request('/api/articles/radio-news', { method: 'POST' });
+    }
 }
 
 // Create global API instance
