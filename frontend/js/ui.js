@@ -110,6 +110,36 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// Create station card HTML
+function createStationCard(station) {
+    const card = document.createElement('div');
+    card.className = 'station-card';
+    card.dataset.id = station.id;
+    
+    const imageHtml = station.image_url 
+        ? `<img src="${escapeHtml(station.image_url)}" alt="${escapeHtml(station.name)}">`
+        : `<span class="placeholder-icon">🎸</span>`;
+    
+    const descriptionHtml = station.description 
+        ? `<p class="station-card-description">${escapeHtml(station.description)}</p>` 
+        : '';
+    
+    card.innerHTML = `
+        <div class="station-card-image">
+            ${imageHtml}
+        </div>
+        <div class="station-card-content">
+            <h3 class="station-card-name">${escapeHtml(station.name)}</h3>
+            ${descriptionHtml}
+            <p class="station-card-duration">⏱️ ${station.duration} hour${station.duration > 1 ? 's' : ''}</p>
+        </div>
+    `;
+    
+    card.addEventListener('click', () => app.openStation(station));
+    
+    return card;
+}
+
 // Modal management
 class ModalManager {
     constructor(modalId) {

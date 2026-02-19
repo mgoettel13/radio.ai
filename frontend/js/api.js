@@ -50,8 +50,24 @@ class API {
             }
 
             if (!response.ok) {
-                const error = await response.json().catch(() => ({ detail: 'Request failed' }));
-                throw new Error(error.detail || `HTTP ${response.status}`);
+                let errorMsg = `HTTP ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    console.log('Error response:', errorData);
+                    // For 422 errors, include validation details
+                    if (response.status === 422 && errorData.detail) {
+                        if (Array.isArray(errorData.detail)) {
+                            errorMsg = errorData.detail.map(e => `${e.loc?.join('.')}: ${e.msg}`).join(', ');
+                        } else {
+                            errorMsg = errorData.detail;
+                        }
+                    } else {
+                        errorMsg = errorData.detail || errorMsg;
+                    }
+                } catch (e) {
+                    errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+                }
+                throw new Error(errorMsg);
             }
 
             // Return null for 204 No Content
@@ -189,6 +205,33 @@ class API {
     // Radio News
     async getRadioNews() {
         return this.request('/api/articles/radio-news', { method: 'POST' });
+    }
+
+    // Stations
+    async getStations() {
+        return this.request('/api/stations');
+    }
+
+    async createStation(data) {
+        return this.request('/api/stations', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async getStation(id) {
+        return this.request(`/api/stations/${id}`);
+    }
+
+    async updateStation(id, data) {
+        return this.request(`/api/stations/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deleteStation(id) {
+        return this.request(`/api/stations/${id}`, { method: 'DELETE' });
     }
 }
 

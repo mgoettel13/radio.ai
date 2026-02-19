@@ -59,6 +59,11 @@
             <div class="header-content">
                 <h1>📰 NPR News Summarizer</h1>
                 <div class="header-actions">
+                    <!-- Navigation Menu -->
+                    <nav class="nav-menu hidden" id="nav-menu">
+                        <button class="nav-item active" data-section="news">📰 News</button>
+                        <button class="nav-item" data-section="radio">📻 Radio</button>
+                    </nav>
                     <button id="settings-btn" class="btn btn-icon hidden" title="Settings">
                         ⚙️
                     </button>
@@ -91,6 +96,19 @@
             <!-- Article List -->
             <div id="article-list" class="article-list">
                 <!-- Articles will be inserted here -->
+            </div>
+
+            <!-- Station List -->
+            <div id="station-list" class="station-list hidden">
+                <div class="station-header">
+                    <h2>My Radio Stations</h2>
+                    <button id="add-station-btn" class="btn btn-primary">
+                        <span>+</span> Add Station
+                    </button>
+                </div>
+                <div id="stations-container" class="stations-grid">
+                    <!-- Stations will be inserted here -->
+                </div>
             </div>
         </main>
 
@@ -382,6 +400,68 @@
                             </button>
                         </form>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Station Modal -->
+        <div id="station-modal" class="modal hidden">
+            <div class="modal-content station-modal-content">
+                <div class="modal-header">
+                    <h2 id="station-modal-title">Create Radio Station</h2>
+                    <button id="close-station-modal" class="btn btn-icon">✕</button>
+                </div>
+                <div class="modal-body">
+                    <p class="station-intro">Create your own radio station based on what music you like or what mood you are in</p>
+                    <form id="station-form">
+                        <input type="hidden" id="station-id" value="">
+                        <div class="form-group">
+                            <label for="station-name">Name *</label>
+                            <input type="text" id="station-name" name="name" required placeholder="My Rock Station">
+                        </div>
+                        <div class="form-group">
+                            <label for="station-image">Station Image</label>
+                            <div class="image-upload-container">
+                                <input type="file" id="station-image-input" accept="image/*" class="hidden">
+                                <button type="button" id="station-image-btn" class="btn btn-secondary">Choose Image</button>
+                                <div id="station-image-preview" class="image-preview">
+                                    <img id="station-preview-img" src="" alt="Station preview" class="hidden">
+                                    <span id="station-preview-placeholder">🎸</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="station-description">
+                                Describe the music you would like to hear
+                                <span class="info-tooltip" title="Describe the genre and also period of music. Also a mood is very helpful. E.g., 'I love classic rock from the 90s'">ℹ️</span>
+                            </label>
+                            <textarea id="station-description" name="description" rows="3" placeholder="I love classic rock from the 90s"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="station-examples">Please provide 3-5 song examples</label>
+                            <textarea id="station-examples" name="example_songs" rows="3" placeholder="Enter song names, one per line&#10;Song 1&#10;Song 2&#10;Song 3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="station-duration">Duration of playlist</label>
+                            <select id="station-duration" name="duration">
+                                <option value="1">1 hour</option>
+                                <option value="2">2 hours</option>
+                                <option value="3">3 hours</option>
+                                <option value="4">4 hours</option>
+                                <option value="5">5 hours</option>
+                                <option value="6">6 hours</option>
+                                <option value="8">8 hours</option>
+                                <option value="10">10 hours</option>
+                                <option value="12">12 hours</option>
+                                <option value="24">24 hours</option>
+                            </select>
+                        </div>
+                        <div id="station-error" class="error-message hidden"></div>
+                        <div class="form-actions">
+                            <button type="button" id="station-cancel-btn" class="btn btn-secondary">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

@@ -9,7 +9,10 @@ class App {
         this.summary = null;
         this.articleModal = new ModalManager('article-modal');
         this.radioNewsModal = new ModalManager('radio-news-modal');
+        this.stationModal = new ModalManager('station-modal');
         this.radioScript = null;
+        this.stations = [];
+        this.currentSection = 'news'; // 'news' or 'radio'
 
         this.init();
     }
@@ -21,6 +24,12 @@ class App {
         document.getElementById('listen-btn').addEventListener('click', () => this.listenToSummary());
         document.getElementById('get-my-news-btn').addEventListener('click', () => this.getPersonalizedNews());
         document.getElementById('my-radio-news-btn').addEventListener('click', () => this.getRadioNews());
+        
+        // Navigation menu
+        this.setupNavigation();
+        
+        // Station event listeners
+        this.setupStationListeners();
 
         // Listen for auth state changes
         window.addEventListener('auth:stateChanged', (e) => this.onAuthStateChanged(e.detail));
@@ -29,13 +38,219 @@ class App {
         this.articles = [];
     }
 
+    setupNavigation() {
+        const navMenu = document.getElementById('nav-menu');
+        if (!navMenu) return;
+        
+        const navItems = navMenu.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const section = item.dataset.section;
+                this.navigateToSection(section);
+            });
+        });
+    }
+
+    navigateToSection(section) {
+        this.currentSection = section;
+        
+        // Update nav menu
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            if (item.dataset.section === section) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+        
+        // Show/hide content
+        const articleList = document.getElementById('article-list');
+        const stationList = document.getElementById('station-list');
+        
+        if (section === 'news') {
+            articleList.classList.remove('hidden');
+            stationList.classList.add('hidden');
+        } else if (section === 'radio') {
+            articleList.classList.add('hidden');
+            stationList.classList.remove('hidden');
+            this.loadStations();
+        }
+    }
+
+    showNavMenu() {
+        document.getElementById('nav-menu').classList.remove('hidden');
+    }
+
+    hideNavMenu() {
+        document.getElementById('nav-menu').classList.add('hidden');
+    }
+
+    setupStationListeners() {
+        // Add station button
+        const addBtn = document.getElementById('add-station-btn');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => this.showCreateStationModal());
+        }
+        
+        // Station modal cancel button
+        const cancelBtn = document.getElementById('station-cancel-btn');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => this.closeStationModal());
+        }
+        
+        // Station form submission
+        const stationForm = document.getElementById('station-form');
+        if (stationForm) {
+            stationForm.addEventListener('submit', (e) => this.saveStation(e));
+        }
+        
+        // Image upload button
+        const imageBtn = document.getElementById('station-image-btn');
+        const imageInput = document.getElementById('station-image-input');
+        if (imageBtn && imageInput) {
+            imageBtn.addEventListener('click', () => imageInput.click());
+            imageInput.addEventListener('change', (e) => this.handleStationImageUpload(e));
+        }
+    }
+
+    async loadStations() {
+        try {
+            const data = await api.getStations();
+            this.stations = data.stations || [];
+            this.renderStations();
+        } catch (error) {
+            console.error('Load stations error:', error);
+            showToast('Failed to load stations', 'error');
+        }
+    }
+
+    renderStations() {
+        const container = document.getElementById('stations-container');
+        container.innerHTML = '';
+        
+        if (this.stations.length === 0) {
+            container.innerHTML = '<p class="no-stations">No radio stations yet. Click "Add Station" to create one!</p>';
+            return;
+        }
+        
+        this.stations.forEach(station => {
+            const card = createStationCard(station);
+            container.appendChild(card);
+        });
+    }
+
+    showCreateStationModal() {
+        document.getElementById('station-modal-title').textContent = 'Create Radio Station';
+        document.getElementById('station-id').value = '';
+        document.getElementById('station-name').value = '';
+        document.getElementById('station-description').value = '';
+        document.getElementById('station-examples').value = '';
+        document.getElementById('station-duration').value = '1';
+        this.clearStationImagePreview();
+        document.getElementById('station-error').classList.add('hidden');
+        
+        this.stationModal.open();
+    }
+
+    openStation(station) {
+        // For now, show the station details in a modal (can be expanded later)
+        // Could show station details, allow edit, delete, etc.
+        showToast(`Station: ${station.name}`, 'info');
+    }
+
+    closeStationModal() {
+        this.stationModal.close();
+    }
+
+    handleStationImageUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const previewImg = document.getElementById('station-preview-img');
+            const placeholder = document.getElementById('station-preview-placeholder');
+            
+            previewImg.src = e.target.result;
+            previewImg.classList.remove('hidden');
+            placeholder.classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    clearStationImagePreview() {
+        const previewImg = document.getElementById('station-preview-img');
+        const placeholder = document.getElementById('station-preview-placeholder');
+        const imageInput = document.getElementById('station-image-input');
+        
+        previewImg.src = '';
+        previewImg.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+        if (imageInput) imageInput.value = '';
+    }
+
+    async saveStation(event) {
+        event.preventDefault();
+        
+        const stationId = document.getElementById('station-id').value;
+        const name = document.getElementById('station-name').value.trim();
+        const description = document.getElementById('station-description').value.trim();
+        const examplesText = document.getElementById('station-examples').value.trim();
+        const duration = parseInt(document.getElementById('station-duration').value, 10);
+        
+        // Get image from preview or use default
+        const previewImg = document.getElementById('station-preview-img');
+        const imageUrl = previewImg.classList.contains('hidden') ? null : previewImg.src;
+        
+        // Parse example songs
+        const example_songs = examplesText 
+            ? examplesText.split('\n').map(s => s.trim()).filter(s => s.length > 0)
+            : [];
+        
+        const stationData = {
+            name,
+            description: description || null,
+            example_songs,
+            duration,
+            image_url: imageUrl || null
+        };
+        
+        console.log('Saving station:', stationData);
+        
+        const errorEl = document.getElementById('station-error');
+        
+        try {
+            if (stationId) {
+                // Update existing station
+                await api.updateStation(stationId, stationData);
+                showToast('Station updated!', 'success');
+            } else {
+                // Create new station
+                await api.createStation(stationData);
+                showToast('Station created!', 'success');
+            }
+            
+            this.closeStationModal();
+            
+            // Refresh station list
+            this.loadStations();
+            
+        } catch (error) {
+            errorEl.textContent = error.message || 'Failed to save station';
+            errorEl.classList.remove('hidden');
+        }
+    }
+
     onAuthStateChanged(detail) {
         if (detail && detail.isAuthenticated) {
             this.showGetMyNewsButton();
             this.showMyRadioNewsButton();
+            this.showNavMenu();
         } else {
             this.hideGetMyNewsButton();
             this.hideMyRadioNewsButton();
+            this.hideNavMenu();
         }
     }
 
