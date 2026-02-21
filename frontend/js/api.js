@@ -233,6 +233,13 @@ class API {
     async deleteStation(id) {
         return this.request(`/api/stations/${id}`, { method: 'DELETE' });
     }
+
+    // Playlist
+    async generatePlaylist(stationId) {
+        return this.request(`/api/stations/${stationId}/generate-playlist`, {
+            method: 'POST'
+        });
+    }
 }
 
 // Create global API instance

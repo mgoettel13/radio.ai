@@ -10,6 +10,7 @@ class App {
         this.articleModal = new ModalManager('article-modal');
         this.radioNewsModal = new ModalManager('radio-news-modal');
         this.stationModal = new ModalManager('station-modal');
+        this.playlistModal = new ModalManager('playlist-modal');
         this.radioScript = null;
         this.stations = [];
         this.currentSection = 'news'; // 'news' or 'radio'
@@ -276,6 +277,56 @@ class App {
             errorEl.textContent = error.message || 'Failed to save station';
             errorEl.classList.remove('hidden');
         }
+    }
+
+    async generatePlaylist(station) {
+        const btn = document.querySelector(`.station-card[data-id="${station.id}"] .station-play-btn`);
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = '⏳';
+        }
+
+        try {
+            const playlist = await api.generatePlaylist(station.id);
+            this.displayPlaylistModal(playlist);
+            showToast('Playlist generated!', 'success');
+        } catch (error) {
+            showToast('Failed to generate playlist: ' + error.message, 'error');
+            console.error('Generate playlist error:', error);
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = '▶️';
+            }
+        }
+    }
+
+    displayPlaylistModal(playlist) {
+        // Set station info
+        const infoEl = document.getElementById('playlist-info');
+        infoEl.innerHTML = `
+            <h3>${escapeHtml(playlist.station_name)}</h3>
+            <p class="playlist-duration">⏱️ ${playlist.total_duration_hours} hour${playlist.total_duration_hours > 1 ? 's' : ''} • ${playlist.songs.length} songs</p>
+        `;
+
+        // Render songs list
+        const songsEl = document.getElementById('playlist-songs');
+        songsEl.innerHTML = playlist.songs.map((song, index) => `
+            <div class="playlist-song">
+                <div class="song-number">${index + 1}</div>
+                <div class="song-details">
+                    <div class="song-title">${escapeHtml(song.title)}</div>
+                    <div class="song-artist">${escapeHtml(song.artist)}${song.year ? ` • ${song.year}` : ''} • ${escapeHtml(song.genre)}</div>
+                    <div class="song-why">"${escapeHtml(song.why_this_song)}"</div>
+                </div>
+            </div>
+        `).join('');
+
+        // Setup close button
+        const closeBtn = document.getElementById('playlist-close-btn');
+        closeBtn.onclick = () => this.playlistModal.close();
+
+        this.playlistModal.open();
     }
 
     onAuthStateChanged(detail) {

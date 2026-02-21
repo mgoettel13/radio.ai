@@ -346,6 +346,165 @@ Write in a natural, radio announcer style. Each story should be 1-2 sentences th
 
         return prompt
 
+    async def generate_playlist(
+        self,
+        station_name: str,
+        description: str,
+        example_songs: List[str],
+        duration_hours: int
+    ) -> Dict[str, Any]:
+        """
+        Generate a playlist for a radio station using Perplexity AI.
+
+        Args:
+            station_name: Name of the radio station
+            description: Description of the music preferences
+            example_songs: List of example songs provided by user
+            duration_hours: Duration of the playlist in hours (1-24)
+
+        Returns:
+            Dict with station_name, total_duration_hours, and songs list
+        """
+        if not self.api_key:
+            raise PerplexityError("Perplexity API key not configured")
+
+        # Build the prompt for playlist generation
+        prompt = self._build_playlist_prompt(station_name, description, example_songs, duration_hours)
+
+        payload = {
+            "model": "sonar-pro",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a music curator who creates playlists for radio stations. Generate a playlist in valid JSON format only."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            "max_tokens": 2000,
+            "temperature": 0.7
+        }
+
+        # Try up to 2 times to get valid JSON
+        for attempt in range(2):
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        f"{self.BASE_URL}/chat/completions",
+                        headers=self.headers,
+                        json=payload,
+                        timeout=120.0
+                    )
+                    response.raise_for_status()
+                    data = response.json()
+
+                content = data["choices"][0]["message"]["content"].strip()
+                model_used = data.get("model", "sonar-pro")
+                tokens_used = data.get("usage", {}).get("total_tokens")
+
+                logger.info(f"Generated playlist using {model_used}, tokens: {tokens_used}")
+
+                # Parse and validate the JSON response
+                playlist = self._parse_playlist_response(content, duration_hours)
+                return playlist
+
+            except httpx.HTTPStatusError as e:
+                logger.error(f"Perplexity API error: {e.response.status_code} - {e.response.text}")
+                raise PerplexityError(f"API error: {e.response.status_code}")
+            except (KeyError, IndexError) as e:
+                logger.error(f"Unexpected Perplexity response format: {e}")
+                if attempt == 1:  # Last attempt
+                    raise PerplexityError("Invalid response format from Perplexity API")
+            except Exception as e:
+                logger.error(f"Perplexity request failed: {e}")
+                if attempt == 1:  # Last attempt
+                    raise PerplexityError(f"Request failed: {str(e)}")
+
+        # If we get here, both attempts failed
+        raise PerplexityError("Failed to generate valid playlist after retries")
+
+    def _build_playlist_prompt(
+        self,
+        station_name: str,
+        description: str,
+        example_songs: List[str],
+        duration_hours: int
+    ) -> str:
+        """Build the prompt for playlist generation."""
+        examples_str = ", ".join(example_songs) if example_songs else "No examples provided"
+
+        # Calculate approximate number of songs (assuming ~3.5 min average song length)
+        num_songs = min(duration_hours * 17, 50)  # Max 50 songs
+
+        prompt = f"""Generate a playlist of songs for a {duration_hours}-hour radio station based on these preferences:
+- Station name: {station_name}
+- Description: {description}
+- Example songs: {examples_str}
+
+Return ONLY a JSON object with the following structure (no other text):
+{{
+  "station_name": "{station_name}",
+  "total_duration_hours": {duration_hours},
+  "songs": [
+    {{"artist": "string", "title": "string", "year": null, "genre": "string", "why_this_song": "string"}}
+  ]
+}}
+
+Include approximately {num_songs} songs that fit the described music preferences. Set year to null if unknown."""
+
+        return prompt
+
+    def _parse_playlist_response(
+        self,
+        content: str,
+        duration_hours: int
+    ) -> Dict[str, Any]:
+        """Parse and validate the playlist response from Perplexity."""
+        import json
+
+        # Try to extract JSON from the response
+        try:
+            # Find JSON object in the response
+            start_idx = content.find("{")
+            end_idx = content.rfind("}") + 1
+
+            if start_idx != -1 and end_idx != 0:
+                json_str = content[start_idx:end_idx]
+                playlist = json.loads(json_str)
+            else:
+                # Try parsing the whole response
+                playlist = json.loads(content)
+
+            # Validate required fields
+            if "songs" not in playlist:
+                raise ValueError("Missing 'songs' field")
+
+            # Ensure station_name and duration are set correctly
+            if "station_name" not in playlist:
+                playlist["station_name"] = "Generated Station"
+            if "total_duration_hours" not in playlist:
+                playlist["total_duration_hours"] = duration_hours
+
+            # Validate each song has required fields
+            for song in playlist["songs"]:
+                if "artist" not in song:
+                    song["artist"] = "Unknown Artist"
+                if "title" not in song:
+                    song["title"] = "Unknown Title"
+                if "genre" not in song:
+                    song["genre"] = "Unknown"
+                if "why_this_song" not in song:
+                    song["why_this_song"] = ""
+                # year can be null
+
+            return playlist
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse playlist response: {e}")
+            raise ValueError(f"Invalid JSON in response: {e}")
+
 
 class PerplexityError(Exception):
     """Raised when Perplexity API request fails."""

@@ -19,6 +19,8 @@ from app.schemas.station import (
     StationUpdate,
     StationList,
 )
+from app.schemas.playlist import PlaylistResponse
+from app.services.perplexity import PerplexityClient, PerplexityError
 
 router = APIRouter(prefix="/api/stations", tags=["stations"])
 
@@ -217,3 +219,49 @@ async def delete_station(
     
     await session.delete(station)
     await session.commit()
+
+
+@router.post("/{station_id}/generate-playlist", response_model=PlaylistResponse)
+async def generate_playlist(
+    station_id: uuid.UUID,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    session: Annotated[AsyncSession, Depends(get_async_session)],
+):
+    """
+    Generate a playlist for a radio station.
+    
+    Uses Perplexity AI to create a playlist based on the station's
+    name, description, example songs, and duration.
+    """
+    # Get the station
+    result = await session.execute(
+        select(Station).where(
+            Station.id == station_id,
+            Station.user_id == current_user.id
+        )
+    )
+    station = result.scalar_one_or_none()
+    
+    if not station:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Station not found"
+        )
+    
+    try:
+        # Generate playlist using Perplexity
+        perplexity = PerplexityClient()
+        playlist = await perplexity.generate_playlist(
+            station_name=station.name,
+            description=station.description or "",
+            example_songs=station.example_songs or [],
+            duration_hours=station.duration
+        )
+        
+        return PlaylistResponse(**playlist)
+        
+    except PerplexityError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate playlist: {str(e)}"
+        )

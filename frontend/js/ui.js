@@ -127,6 +127,7 @@ function createStationCard(station) {
     card.innerHTML = `
         <div class="station-card-image">
             ${imageHtml}
+            <button class="station-play-btn" title="Generate Playlist">▶️ <span class="play-btn-text">Play</span></button>
         </div>
         <div class="station-card-content">
             <h3 class="station-card-name">${escapeHtml(station.name)}</h3>
@@ -135,6 +136,14 @@ function createStationCard(station) {
         </div>
     `;
     
+    // Handle play button click
+    const playBtn = card.querySelector('.station-play-btn');
+    playBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        app.generatePlaylist(station);
+    });
+    
+    // Handle card click for editing
     card.addEventListener('click', () => app.openStation(station));
     
     return card;

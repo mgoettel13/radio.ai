@@ -17,6 +17,7 @@ htmlcov/
 *.pyc
 *.pyo
 *.egg
+*.p8
 
 # Environment variables
 .env
