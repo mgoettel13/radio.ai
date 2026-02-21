@@ -28,6 +28,12 @@ class App {
         // Navigation menu
         this.setupNavigation();
         
+        // Hide the get news section initially (will show when News menu is clicked)
+        const getNewsSection = document.querySelector('.get-news-section');
+        if (getNewsSection) {
+            getNewsSection.classList.add('hidden');
+        }
+        
         // Station event listeners
         this.setupStationListeners();
 
@@ -68,12 +74,23 @@ class App {
         const articleList = document.getElementById('article-list');
         const stationList = document.getElementById('station-list');
         
+        // Get the button containers
+        const getNewsSection = document.querySelector('.get-news-section');
+        
         if (section === 'news') {
             articleList.classList.remove('hidden');
             stationList.classList.add('hidden');
+            // Show Get My News and My Radio News buttons in news section
+            if (getNewsSection) {
+                getNewsSection.classList.remove('hidden');
+            }
         } else if (section === 'radio') {
             articleList.classList.add('hidden');
             stationList.classList.remove('hidden');
+            // Hide Get My News and My Radio News buttons in radio section
+            if (getNewsSection) {
+                getNewsSection.classList.add('hidden');
+            }
             this.loadStations();
         }
     }
@@ -154,9 +171,28 @@ class App {
     }
 
     openStation(station) {
-        // For now, show the station details in a modal (can be expanded later)
-        // Could show station details, allow edit, delete, etc.
-        showToast(`Station: ${station.name}`, 'info');
+        // Open the modal in edit mode - populate form with station data
+        document.getElementById('station-modal-title').textContent = 'Edit Radio Station';
+        document.getElementById('station-id').value = station.id;
+        document.getElementById('station-name').value = station.name || '';
+        document.getElementById('station-description').value = station.description || '';
+        document.getElementById('station-examples').value = (station.example_songs || []).join('\n');
+        document.getElementById('station-duration').value = station.duration || 1;
+        
+        // Show the existing image in preview
+        const previewImg = document.getElementById('station-preview-img');
+        const placeholder = document.getElementById('station-preview-placeholder');
+        
+        if (station.image_url) {
+            previewImg.src = station.image_url;
+            previewImg.classList.remove('hidden');
+            placeholder.classList.add('hidden');
+        } else {
+            this.clearStationImagePreview();
+        }
+        
+        document.getElementById('station-error').classList.add('hidden');
+        this.stationModal.open();
     }
 
     closeStationModal() {
