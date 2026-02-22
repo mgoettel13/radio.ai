@@ -16,6 +16,8 @@ class AppleMusicService {
         this._initialized = false;
         this._initializing = false;
         this._playbackReady = false;
+        this._onPlaybackStateChange = null;
+        this._onMediaItemChange = null;
     }
 
     /**
@@ -91,12 +93,37 @@ class AppleMusicService {
         // Listen for playback state changes
         this.music.addEventListener('playbackStateDidChange', (event) => {
             console.log('AppleMusic: playbackStateDidChange', event?.state);
+            if (this._onPlaybackStateChange) {
+                this._onPlaybackStateChange(event);
+            }
+        });
+
+        // Listen for media item changes (song changes)
+        this.music.addEventListener('mediaItemDidChange', (event) => {
+            console.log('AppleMusic: mediaItemDidChange');
+            if (this._onMediaItemChange) {
+                this._onMediaItemChange(event);
+            }
         });
 
         // Listen for errors
         this.music.addEventListener('playbackError', (error) => {
             console.error('AppleMusic: playbackError', error);
         });
+    }
+
+    /**
+     * Set callback for playback state changes
+     */
+    onPlaybackStateChange(callback) {
+        this._onPlaybackStateChange = callback;
+    }
+
+    /**
+     * Set callback for media item changes
+     */
+    onMediaItemChange(callback) {
+        this._onMediaItemChange = callback;
     }
 
     /**
@@ -335,6 +362,36 @@ class AppleMusicService {
         if (this.music) {
             await this.music.play();
         }
+    }
+
+    /**
+     * Stop playback
+     */
+    async stop() {
+        if (this.music) {
+            await this.music.stop();
+        }
+    }
+
+    /**
+     * Toggle play/pause
+     */
+    async togglePlayPause() {
+        if (!this.music) return;
+        
+        if (this.isPlaying()) {
+            await this.music.pause();
+        } else {
+            await this.music.play();
+        }
+    }
+
+    /**
+     * Check if currently playing
+     */
+    isPlaying() {
+        if (!this.music) return false;
+        return this.music.playbackState === MusicKit.PlaybackStates.playing;
     }
 
     /**

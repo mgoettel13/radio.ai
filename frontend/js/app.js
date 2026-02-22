@@ -67,6 +67,38 @@ class App {
         if (resolveBtn) {
             resolveBtn.addEventListener('click', () => this.resolvePlaylist());
         }
+        
+        // Playback controls
+        this.setupPlaybackControls();
+    }
+
+    /**
+     * Set up playback control buttons
+     */
+    setupPlaybackControls() {
+        // Play/Pause button
+        const playPauseBtn = document.getElementById('btn-play-pause');
+        if (playPauseBtn) {
+            playPauseBtn.addEventListener('click', () => this.togglePlayPause());
+        }
+        
+        // Stop button
+        const stopBtn = document.getElementById('btn-stop');
+        if (stopBtn) {
+            stopBtn.addEventListener('click', () => this.stopPlayback());
+        }
+        
+        // Next button
+        const nextBtn = document.getElementById('btn-next');
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => this.skipToNext());
+        }
+        
+        // Previous button
+        const prevBtn = document.getElementById('btn-prev');
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => this.skipToPrevious());
+        }
     }
 
     setupNavigation() {
@@ -365,15 +397,34 @@ class App {
             resolveBtn.innerHTML = '<span>🔍 Resolve Songs</span>';
         }
 
+        // Hide now playing section initially
+        this.hideNowPlaying();
+
         // Setup close button
         const closeBtn = document.getElementById('playlist-close-btn');
         closeBtn.onclick = () => this.playlistModal.close();
+
+        // Set up Apple Music callbacks for UI updates
+        this.setupAppleMusicCallbacks();
 
         // Pre-initialize MusicKit AND pre-authorize in the background
         // This ensures MusicKit is ready AND authorized when user clicks play
         this._preInitializeAndAuthorize();
 
         this.playlistModal.open();
+    }
+
+    /**
+     * Set up Apple Music callbacks for UI updates
+     */
+    setupAppleMusicCallbacks() {
+        // Remove any existing callbacks first
+        appleMusic.onPlaybackStateChange(null);
+        appleMusic.onMediaItemChange(null);
+        
+        // Set up new callbacks
+        appleMusic.onPlaybackStateChange((event) => this.handlePlaybackStateChange(event));
+        appleMusic.onMediaItemChange((event) => this.handleMediaItemChange(event));
     }
 
     /**
@@ -660,8 +711,19 @@ class App {
             this.updatePlaylistStatus('Playing! 🎵', 'success');
             showToast('Playing playlist!', 'success');
             
-            // Close modal
-            this.playlistModal.close();
+            // Show now playing section with current song
+            const currentSong = appleMusic.getCurrentSong();
+            if (currentSong) {
+                this.updateNowPlaying(currentSong);
+            }
+            
+            // Update play/pause button to show pause icon
+            const playPauseBtn = document.getElementById('btn-play-pause');
+            if (playPauseBtn) {
+                playPauseBtn.innerHTML = '⏸️';
+            }
+            
+            // DON'T close modal - keep it open for playback controls
             
         } catch (error) {
             console.error('Play playlist error:', error);
@@ -672,6 +734,116 @@ class App {
                 playBtn.disabled = false;
                 playBtn.innerHTML = '<span>▶️ Play with Apple Music</span>';
             }
+        }
+    }
+
+    /**
+     * Toggle play/pause for current playback
+     */
+    togglePlayPause() {
+        appleMusic.togglePlayPause();
+    }
+
+    /**
+     * Stop playback and hide now playing section
+     */
+    stopPlayback() {
+        appleMusic.stop();
+        this.hideNowPlaying();
+        this.updatePlaylistStatus('Playback stopped', 'info');
+    }
+
+    /**
+     * Skip to next track
+     */
+    skipToNext() {
+        appleMusic.skipToNext();
+    }
+
+    /**
+     * Skip to previous track
+     */
+    skipToPrevious() {
+        appleMusic.skipToPrevious();
+    }
+
+    /**
+     * Handle playback state changes from Apple Music
+     */
+    handlePlaybackStateChange(event) {
+        const playPauseBtn = document.getElementById('btn-play-pause');
+        if (!playPauseBtn) return;
+        
+        if (appleMusic.isPlaying()) {
+            playPauseBtn.innerHTML = '⏸️';
+        } else {
+            playPauseBtn.innerHTML = '▶️';
+        }
+    }
+
+    /**
+     * Handle media item changes (song changes) from Apple Music
+     */
+    handleMediaItemChange(event) {
+        const currentSong = appleMusic.getCurrentSong();
+        if (currentSong) {
+            this.updateNowPlaying(currentSong);
+        }
+    }
+
+    /**
+     * Update the Now Playing section with current song info
+     */
+    updateNowPlaying(song) {
+        const section = document.getElementById('now-playing-section');
+        const titleEl = document.getElementById('now-playing-title');
+        const artistEl = document.getElementById('now-playing-artist');
+        const artworkEl = document.getElementById('now-playing-artwork');
+        
+        if (section && titleEl && artistEl) {
+            // MusicKit uses attributes property for song details
+            const attrs = song.attributes || song;
+            
+            titleEl.textContent = attrs.name || song.title || 'Unknown';
+            artistEl.textContent = attrs.artistName || song.artist || 'Unknown Artist';
+            
+            // Get artwork URL - Apple Music artwork can be a string URL or an object
+            if (artworkEl) {
+                let artworkUrl = null;
+                const artwork = attrs.artwork || song.artwork;
+                
+                if (artwork) {
+                    if (typeof artwork === 'string') {
+                        // String URL with template placeholders
+                        artworkUrl = artwork.replace('{w}', '120').replace('{h}', '120');
+                    } else if (artwork.url) {
+                        // Object with url property
+                        artworkUrl = artwork.url;
+                        if (artworkUrl && artworkUrl.includes('{w}')) {
+                            artworkUrl = artworkUrl.replace('{w}', '120').replace('{h}', '120');
+                        }
+                    }
+                }
+                
+                if (artworkUrl) {
+                    artworkEl.src = artworkUrl;
+                } else {
+                    // Default placeholder if no artwork
+                    artworkEl.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🎵</text></svg>';
+                }
+            }
+            
+            section.classList.remove('hidden');
+        }
+    }
+
+    /**
+     * Hide the Now Playing section
+     */
+    hideNowPlaying() {
+        const section = document.getElementById('now-playing-section');
+        if (section) {
+            section.classList.add('hidden');
         }
     }
 

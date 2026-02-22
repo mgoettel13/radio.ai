@@ -520,6 +520,27 @@
                 <div class="playlist-info" id="playlist-info">
                     <!-- Station info will be inserted here -->
                 </div>
+                
+                <!-- Now Playing Section -->
+                <div id="now-playing-section" class="now-playing-section hidden">
+                    <div class="now-playing-header">🎵 Now Playing</div>
+                    <div class="now-playing-info">
+                        <div class="now-playing-artwork">
+                            <img id="now-playing-artwork" src="" alt="Album Art">
+                        </div>
+                        <div class="now-playing-details">
+                            <div id="now-playing-title" class="now-playing-title"></div>
+                            <div id="now-playing-artist" class="now-playing-artist"></div>
+                        </div>
+                    </div>
+                    <div class="playback-controls">
+                        <button id="btn-prev" class="btn btn-icon" title="Previous">⏮️</button>
+                        <button id="btn-play-pause" class="btn btn-primary" title="Play/Pause">⏸️</button>
+                        <button id="btn-next" class="btn btn-icon" title="Next">⏭️</button>
+                        <button id="btn-stop" class="btn btn-secondary" title="Stop">⏹️</button>
+                    </div>
+                </div>
+                
                 <div class="playlist-actions">
                     <button id="playlist-play-btn" class="btn btn-primary">
                         <span>▶️ Play with Apple Music</span>
@@ -534,15 +555,6 @@
                 </div>
                 <div class="modal-footer">
                     <button id="playlist-close-btn" class="btn btn-secondary">Close</button>
-                </div>
-            </div>
-        </div>
-                <div class="modal-body">
-                    <div id="playlist-info" class="playlist-info"></div>
-                    <div id="playlist-songs" class="playlist-songs"></div>
-                    <div class="playlist-actions">
-                        <button id="playlist-close-btn" class="btn btn-secondary">Close</button>
-                    </div>
                 </div>
             </div>
         </div>
