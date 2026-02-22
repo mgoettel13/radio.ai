@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import DateTime, ForeignKey, JSON, String
+from sqlalchemy import DateTime, ForeignKey, JSON, String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -45,6 +45,12 @@ class UserPreferences(Base):
         onupdate=datetime.utcnow, 
         nullable=False
     )
+    
+    # Apple Music Subscription
+    apple_music_connected: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    apple_music_subscription_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    apple_music_authorized_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    apple_music_storefront: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     
     # Relationship
     user: Mapped["User"] = relationship("User", back_populates="preferences")

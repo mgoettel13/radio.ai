@@ -14,6 +14,8 @@ class App {
         this.radioScript = null;
         this.stations = [];
         this.currentSection = 'news'; // 'news' or 'radio'
+        this.currentPlaylist = null; // Store current playlist for playback
+        this.resolvedPlaylist = null; // Store resolved Apple Music songs
 
         this.init();
     }
@@ -38,11 +40,33 @@ class App {
         // Station event listeners
         this.setupStationListeners();
 
+        // Playlist modal event listeners
+        this.setupPlaylistListeners();
+
         // Listen for auth state changes
         window.addEventListener('auth:stateChanged', (e) => this.onAuthStateChanged(e.detail));
 
         // Don't load articles on init - only load when user clicks "Get My News"
         this.articles = [];
+    }
+
+    setupPlaylistListeners() {
+        // Play button
+        const playBtn = document.getElementById('playlist-play-btn');
+        if (playBtn) {
+            playBtn.addEventListener('click', (e) => {
+                console.log('DEBUG: Play button clicked!', e);
+                this.playPlaylist();
+            });
+        } else {
+            console.warn('DEBUG: Play button not found!');
+        }
+        
+        // Resolve button
+        const resolveBtn = document.getElementById('playlist-resolve-btn');
+        if (resolveBtn) {
+            resolveBtn.addEventListener('click', () => this.resolvePlaylist());
+        }
     }
 
     setupNavigation() {
@@ -302,6 +326,10 @@ class App {
     }
 
     displayPlaylistModal(playlist) {
+        // Store the playlist for playback
+        this.currentPlaylist = playlist;
+        this.resolvedPlaylist = null;
+        
         // Set station info
         const infoEl = document.getElementById('playlist-info');
         infoEl.innerHTML = `
@@ -322,11 +350,329 @@ class App {
             </div>
         `).join('');
 
+        // Reset buttons
+        this.updatePlaylistStatus('', '');
+        
+        // Enable play button (will resolve first if needed)
+        const playBtn = document.getElementById('playlist-play-btn');
+        const resolveBtn = document.getElementById('playlist-resolve-btn');
+        if (playBtn) {
+            playBtn.disabled = false;
+            playBtn.innerHTML = '<span>▶️ Play with Apple Music</span>';
+        }
+        if (resolveBtn) {
+            resolveBtn.disabled = false;
+            resolveBtn.innerHTML = '<span>🔍 Resolve Songs</span>';
+        }
+
         // Setup close button
         const closeBtn = document.getElementById('playlist-close-btn');
         closeBtn.onclick = () => this.playlistModal.close();
 
+        // Pre-initialize MusicKit AND pre-authorize in the background
+        // This ensures MusicKit is ready AND authorized when user clicks play
+        this._preInitializeAndAuthorize();
+
         this.playlistModal.open();
+    }
+
+    /**
+     * Pre-initialize MusicKit and authorize in the background
+     * This is called when the playlist modal opens so that
+     * when the user clicks play, everything is ready
+     */
+    async _preInitializeAndAuthorize() {
+        try {
+            // Initialize MusicKit if not already done
+            if (!appleMusic.isInitialized()) {
+                console.log('Pre-initializing MusicKit...');
+                await appleMusic.init();
+                console.log('MusicKit pre-initialized successfully');
+            }
+            
+            // Check if already authorized
+            if (appleMusic.isAuthorized()) {
+                console.log('Already authorized with Apple Music');
+                
+                // Pre-resolve the playlist if we have one
+                if (this.currentPlaylist && this.currentPlaylist.songs) {
+                    console.log('Pre-resolving playlist...');
+                    await this._preResolvePlaylist();
+                }
+                return;
+            }
+            
+            // Try to authorize silently (check if user has previously authorized)
+            // Note: This won't show a popup if the user hasn't authorized before
+            // The actual authorization will happen on first play
+            console.log('Checking Apple Music authorization status...');
+            
+        } catch (error) {
+            console.warn('Failed to pre-initialize MusicKit:', error);
+            // This is not critical - we'll try again when user clicks play
+        }
+    }
+
+    /**
+     * Pre-resolve the playlist in the background
+     * This is called when the modal opens and user is already authorized
+     */
+    async _preResolvePlaylist() {
+        if (!this.currentPlaylist || !this.currentPlaylist.songs) {
+            return;
+        }
+        
+        try {
+            const songs = this.currentPlaylist.songs.map(s => ({
+                artist: s.artist,
+                title: s.title
+            }));
+            
+            console.log('Pre-resolving', songs.length, 'songs...');
+            
+            const resolved = await appleMusic.resolvePlaylist(songs);
+            
+            if (resolved.songs && resolved.songs.length > 0) {
+                this.resolvedPlaylist = resolved.songs;
+                console.log('Pre-resolved', resolved.resolved_count, 'songs');
+                
+                // Update the play button to show how many songs are ready
+                const playBtn = document.getElementById('playlist-play-btn');
+                if (playBtn) {
+                    playBtn.innerHTML = `<span>▶️ Play ${resolved.resolved_count} Songs</span>`;
+                }
+                
+                // Update status
+                this.updatePlaylistStatus(
+                    `Ready to play ${resolved.resolved_count} songs`,
+                    'success'
+                );
+            }
+        } catch (error) {
+            console.warn('Pre-resolve failed:', error);
+            // This is not critical - user can click Resolve button
+        }
+    }
+
+    /**
+     * Pre-initialize MusicKit in the background
+     * This is called when the playlist modal opens so that
+     * when the user clicks play, MusicKit is already ready
+     */
+    async _preInitializeMusicKit() {
+        try {
+            // Only initialize if not already done
+            if (!appleMusic.isInitialized()) {
+                console.log('Pre-initializing MusicKit...');
+                await appleMusic.init();
+                console.log('MusicKit pre-initialized successfully');
+            }
+        } catch (error) {
+            console.warn('Failed to pre-initialize MusicKit:', error);
+            // This is not critical - we'll try again when user clicks play
+        }
+    }
+
+    updatePlaylistStatus(message, type) {
+        const statusEl = document.getElementById('playlist-status');
+        if (!statusEl) return;
+        
+        if (!message) {
+            statusEl.classList.add('hidden');
+            return;
+        }
+        
+        statusEl.textContent = message;
+        statusEl.className = 'playlist-status ' + type;
+        statusEl.classList.remove('hidden');
+    }
+
+    async resolvePlaylist() {
+        console.log('resolvePlaylist: DEBUG - Starting');
+        
+        if (!this.currentPlaylist) {
+            console.log('resolvePlaylist: DEBUG - No currentPlaylist, returning');
+            showToast('No playlist to resolve', 'error');
+            return;
+        }
+
+        const resolveBtn = document.getElementById('playlist-resolve-btn');
+        const playBtn = document.getElementById('playlist-play-btn');
+        
+        if (resolveBtn) {
+            resolveBtn.disabled = true;
+            resolveBtn.innerHTML = '<span>⏳ Resolving...</span>';
+        }
+
+        this.updatePlaylistStatus('Looking up songs in Apple Music...', 'info');
+
+        try {
+            // Convert playlist songs to the format expected by the API
+            const songs = this.currentPlaylist.songs.map(s => ({
+                artist: s.artist,
+                title: s.title
+            }));
+            
+            console.log('resolvePlaylist: DEBUG - Calling appleMusic.resolvePlaylist with', songs.length, 'songs');
+
+            // Call the resolve API
+            const resolved = await appleMusic.resolvePlaylist(songs);
+            
+            console.log('resolvePlaylist: DEBUG - Resolve result:', resolved);
+            
+            if (resolved.songs && resolved.songs.length > 0) {
+                this.resolvedPlaylist = resolved.songs;
+                this.updatePlaylistStatus(
+                    `Resolved ${resolved.resolved_count} of ${resolved.original_count} songs`,
+                    'success'
+                );
+                
+                // Update play button to show ready
+                if (playBtn) {
+                    playBtn.disabled = false;
+                    playBtn.innerHTML = `<span>▶️ Play ${resolved.resolved_count} Songs</span>`;
+                }
+                
+                // Update resolve button
+                if (resolveBtn) {
+                    resolveBtn.disabled = false;
+                    resolveBtn.innerHTML = '<span>🔍 Resolve Again</span>';
+                }
+                
+                showToast(`Found ${resolved.resolved_count} songs in Apple Music!`, 'success');
+            } else {
+                console.log('resolvePlaylist: DEBUG - No songs found in result');
+                this.updatePlaylistStatus('No songs found in Apple Music. Try generating a new playlist.', 'error');
+                if (resolveBtn) {
+                    resolveBtn.disabled = false;
+                    resolveBtn.innerHTML = '<span>🔍 Resolve Songs</span>';
+                }
+                showToast('No songs found in Apple Music', 'error');
+            }
+        } catch (error) {
+            console.error('Resolve playlist error:', error);
+            this.updatePlaylistStatus('Failed to resolve songs: ' + error.message, 'error');
+            if (resolveBtn) {
+                resolveBtn.disabled = false;
+                resolveBtn.innerHTML = '<span>🔍 Resolve Songs</span>';
+            }
+            showToast('Failed to resolve playlist: ' + error.message, 'error');
+        }
+    }
+
+    async playPlaylist() {
+        console.log('playPlaylist: DEBUG - Starting, user gesture context should be valid here');
+        
+        const playBtn = document.getElementById('playlist-play-btn');
+        
+        // Check if we need to resolve first - if so, we need to do it BEFORE disabling the button
+        // so the user can click again after resolve completes
+        if (!this.resolvedPlaylist || this.resolvedPlaylist.length === 0) {
+            console.log('playPlaylist: DEBUG - Need to resolve playlist first');
+            this.updatePlaylistStatus('Resolving songs first...', 'info');
+            
+            try {
+                await this.resolvePlaylist();
+            } catch (error) {
+                console.error('Resolve failed:', error);
+                showToast('Failed to resolve songs: ' + error.message, 'error');
+                return;
+            }
+            
+            // Check again after resolve
+            if (!this.resolvedPlaylist || this.resolvedPlaylist.length === 0) {
+                showToast('No songs available to play', 'error');
+                return;
+            }
+            
+            // IMPORTANT: After resolve, we've lost the user gesture context
+            // Tell the user to click play again
+            this.updatePlaylistStatus('Songs resolved! Click Play again to start.', 'info');
+            showToast('Songs found! Click Play again to start.', 'success');
+            return;
+        }
+
+        // Check if MusicKit is initialized
+        if (!appleMusic.isInitialized()) {
+            console.log('playPlaylist: DEBUG - MusicKit not initialized');
+            this.updatePlaylistStatus('Initializing Apple Music...', 'info');
+            
+            try {
+                await appleMusic.init();
+            } catch (error) {
+                console.error('Init failed:', error);
+                showToast('Failed to initialize Apple Music: ' + error.message, 'error');
+                return;
+            }
+            
+            // After init, we've lost the user gesture context
+            // Tell the user to click play again
+            this.updatePlaylistStatus('Apple Music ready! Click Play again.', 'info');
+            showToast('Apple Music ready! Click Play again.', 'success');
+            return;
+        }
+        
+        // Check if authorized
+        if (!appleMusic.isAuthorized()) {
+            console.log('playPlaylist: DEBUG - Not authorized');
+            this.updatePlaylistStatus('Please authorize Apple Music...', 'info');
+            
+            try {
+                const authorized = await appleMusic.authorize();
+                if (!authorized) {
+                    showToast('Please authorize Apple Music to play songs', 'error');
+                    this.updatePlaylistStatus('Apple Music not authorized', 'error');
+                    return;
+                }
+            } catch (error) {
+                console.error('Authorization failed:', error);
+                showToast('Authorization failed: ' + error.message, 'error');
+                return;
+            }
+            
+            // After authorization, we've lost the user gesture context
+            // Tell the user to click play again
+            this.updatePlaylistStatus('Authorized! Click Play again to start.', 'info');
+            showToast('Authorized! Click Play again to start.', 'success');
+            return;
+        }
+
+        // At this point, everything is ready and we should still have user gesture context
+        // (assuming the user clicked play again after the previous steps)
+        
+        if (playBtn) {
+            playBtn.disabled = true;
+            playBtn.innerHTML = '<span>⏳ Starting...</span>';
+        }
+
+        try {
+            this.updatePlaylistStatus('Starting playback...', 'info');
+            
+            console.log('playPlaylist: DEBUG - About to call playPlaylistAndRecord');
+            
+            // Play the playlist
+            // IMPORTANT: This must be called directly from the click handler
+            await appleMusic.playPlaylistAndRecord(
+                this.resolvedPlaylist,
+                this.currentPlaylist?.station_id
+            );
+            
+            this.updatePlaylistStatus('Playing! 🎵', 'success');
+            showToast('Playing playlist!', 'success');
+            
+            // Close modal
+            this.playlistModal.close();
+            
+        } catch (error) {
+            console.error('Play playlist error:', error);
+            this.updatePlaylistStatus('Failed to play: ' + error.message, 'error');
+            showToast('Failed to play playlist: ' + error.message, 'error');
+        } finally {
+            if (playBtn) {
+                playBtn.disabled = false;
+                playBtn.innerHTML = '<span>▶️ Play with Apple Music</span>';
+            }
+        }
     }
 
     onAuthStateChanged(detail) {

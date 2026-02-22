@@ -13,6 +13,7 @@ from app.database import Base
 
 if TYPE_CHECKING:
     from app.models.user import User
+    from app.models.played_music import PlayedMusic
 
 
 class Station(Base):
@@ -53,6 +54,9 @@ class Station(Base):
     
     # Relationship
     user: Mapped["User"] = relationship("User", back_populates="stations")
+    played_music: Mapped[list["PlayedMusic"]] = relationship(
+        "PlayedMusic", back_populates="station", cascade="all, delete-orphan"
+    )
     
     def __repr__(self) -> str:
         return f"<Station {self.name} for user {self.user_id}>"

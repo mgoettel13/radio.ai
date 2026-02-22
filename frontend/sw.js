@@ -1,4 +1,4 @@
-const CACHE_NAME = 'npr-summarizer-v3';
+const CACHE_NAME = 'npr-summarizer-v8';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -7,6 +7,8 @@ const STATIC_ASSETS = [
     '/js/api.js',
     '/js/auth.js',
     '/js/ui.js',
+    '/js/appleMusic.js',
+    '/js/settings.js',
     '/manifest.json'
 ];
 

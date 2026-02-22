@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from app.models.user_preferences import UserPreferences
     from app.models.user_personalized_news import UserPersonalizedNews
     from app.models.station import Station
+    from app.models.played_music import PlayedMusic
 
 
 class User(Base):
@@ -52,6 +53,9 @@ class User(Base):
     )
     stations: Mapped[list["Station"]] = relationship(
         "Station", back_populates="user", cascade="all, delete-orphan"
+    )
+    played_music: Mapped[list["PlayedMusic"]] = relationship(
+        "PlayedMusic", back_populates="user", cascade="all, delete-orphan"
     )
     
     def __repr__(self) -> str:

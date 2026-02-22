@@ -240,6 +240,49 @@ class API {
             method: 'POST'
         });
     }
+
+    // Apple Music
+    async resolvePlaylist(songs) {
+        return this.request('/api/apple-music/resolve-playlist', {
+            method: 'POST',
+            body: JSON.stringify({ songs })
+        });
+    }
+
+    async getAppleMusicSettings() {
+        return this.request('/api/apple-music/settings');
+    }
+
+    async updateAppleMusicSettings(data) {
+        return this.request('/api/apple-music/settings', {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    }
+
+    // Played Music
+    async recordPlay(songData) {
+        return this.request('/api/played-music', {
+            method: 'POST',
+            body: JSON.stringify(songData)
+        });
+    }
+
+    async getMyPlays(limit = 50, offset = 0) {
+        return this.request(`/api/played-music?limit=${limit}&offset=${offset}`);
+    }
+
+    async getMostPlayed(limit = 10) {
+        return this.request(`/api/played-music/most-played?limit=${limit}`);
+    }
+
+    async getStationPlays(stationId, limit = 50) {
+        return this.request(`/api/played-music/station/${stationId}?limit=${limit}`);
+    }
+
+    async deletePlay(playId) {
+        return this.request(`/api/played-music/${playId}`, { method: 'DELETE' });
+    }
 }
 
 // Create global API instance

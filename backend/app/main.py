@@ -17,6 +17,8 @@ from app.models.user_article import UserArticle
 from app.routers import articles_router, tts_router
 from app.routers.settings import router as settings_router
 from app.routers.stations import router as stations_router
+from app.routers.apple_music import router as apple_music_router
+from app.routers.played_music import router as played_music_router
 from app.schemas.article import ArticleRefreshResponse
 from app.services import RSSFetcher
 
@@ -85,6 +87,8 @@ app.include_router(articles_router)
 app.include_router(tts_router)
 app.include_router(settings_router)
 app.include_router(stations_router)
+app.include_router(apple_music_router)
+app.include_router(played_music_router)
 
 
 # Mount static files (for serving frontend)

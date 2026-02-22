@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     # API Keys
     perplexity_api_key: str = ""
     speechify_api_key: str = ""
+    
+    # Apple Music API
+    apple_music_team_id: str = "DH3467C58U"
+    apple_music_key_id: str = "3CXU6RHQ6R"
+    apple_music_key_path: str = "C:/shared/Dev/kilo_ai/RSS_Feed/Apple/AuthKey_3CXU6RHQ6R.p8"
+    apple_music_storefront: str = "us"
 
     # App Settings
     app_port: int = 8000

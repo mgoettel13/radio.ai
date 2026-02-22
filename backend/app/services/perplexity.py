@@ -376,15 +376,15 @@ Write in a natural, radio announcer style. Each story should be 1-2 sentences th
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are a music curator who creates playlists for radio stations. Generate a playlist in valid JSON format only."
+                    "content": "You are a music curator who creates playlists for radio stations. You MUST return ONLY valid JSON with no markdown formatting, no code blocks, and no additional text. Ensure all JSON syntax is correct including proper quotes and commas."
                 },
                 {
                     "role": "user",
                     "content": prompt
                 }
             ],
-            "max_tokens": 2000,
-            "temperature": 0.7
+            "max_tokens": 4000,
+            "temperature": 0.3
         }
 
         # Try up to 2 times to get valid JSON
@@ -443,16 +443,18 @@ Write in a natural, radio announcer style. Each story should be 1-2 sentences th
 - Description: {description}
 - Example songs: {examples_str}
 
-Return ONLY a JSON object with the following structure (no other text):
-{{
-  "station_name": "{station_name}",
-  "total_duration_hours": {duration_hours},
-  "songs": [
-    {{"artist": "string", "title": "string", "year": null, "genre": "string", "why_this_song": "string"}}
-  ]
-}}
+IMPORTANT: Return ONLY valid JSON with no additional text, markdown, or code blocks.
 
-Include approximately {num_songs} songs that fit the described music preferences. Set year to null if unknown."""
+JSON structure (strict format):
+{{"station_name": "{station_name}", "total_duration_hours": {duration_hours}, "songs": [{{"artist": "Artist Name", "title": "Song Title", "year": 1990, "genre": "Rock", "why_this_song": "Brief reason"}}]}}
+
+Rules:
+1. Return ONLY the JSON object, no markdown or explanation
+2. All strings must use double quotes
+3. No trailing commas
+4. year can be null if unknown
+5. Include approximately {num_songs} songs
+6. Ensure all JSON syntax is correct"""
 
         return prompt
 
@@ -463,6 +465,7 @@ Include approximately {num_songs} songs that fit the described music preferences
     ) -> Dict[str, Any]:
         """Parse and validate the playlist response from Perplexity."""
         import json
+        import re
 
         # Try to extract JSON from the response
         try:
@@ -472,10 +475,18 @@ Include approximately {num_songs} songs that fit the described music preferences
 
             if start_idx != -1 and end_idx != 0:
                 json_str = content[start_idx:end_idx]
-                playlist = json.loads(json_str)
             else:
-                # Try parsing the whole response
-                playlist = json.loads(content)
+                json_str = content
+
+            # Try to parse directly first
+            try:
+                playlist = json.loads(json_str)
+            except json.JSONDecodeError as e:
+                logger.warning(f"Initial JSON parse failed, attempting repair: {e}")
+                
+                # Attempt to repair common JSON issues
+                json_str = self._repair_json(json_str)
+                playlist = json.loads(json_str)
 
             # Validate required fields
             if "songs" not in playlist:
@@ -502,8 +513,45 @@ Include approximately {num_songs} songs that fit the described music preferences
             return playlist
 
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse playlist response: {e}")
+            logger.error(f"Failed to parse playlist response after repair attempts: {e}")
+            logger.error(f"Problematic JSON content (first 1000 chars): {json_str[:1000]}")
             raise ValueError(f"Invalid JSON in response: {e}")
+
+    def _repair_json(self, json_str: str) -> str:
+        """Attempt to repair common JSON formatting issues from LLM output."""
+        import re
+        
+        # Log the original for debugging
+        logger.debug(f"Attempting to repair JSON of length {len(json_str)}")
+        
+        # Remove trailing commas before } or ]
+        json_str = re.sub(r',\s*}', '}', json_str)
+        json_str = re.sub(r',\s*]', ']', json_str)
+        
+        # Fix unescaped quotes in string values (common LLM issue)
+        # This is a simple heuristic - look for patterns like "artist": "Some "Band" Name"
+        # and escape the inner quotes
+        
+        # Fix missing commas between array elements
+        # Pattern: } \n { without comma between them
+        json_str = re.sub(r'\}\s*\{', '},{', json_str)
+        
+        # Fix missing commas between object properties
+        # Pattern: "value" \n "key" without comma
+        json_str = re.sub(r'"\s*\n\s*"', '",\n"', json_str)
+        
+        # Remove any control characters except newline and tab
+        json_str = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', json_str)
+        
+        # Fix Unicode escape sequences that might be malformed
+        json_str = re.sub(r'\\u(?![0-9a-fA-F]{4})', '\\\\u', json_str)
+        
+        # Try to fix unescaped backslashes before quotes
+        json_str = re.sub(r'(?<!\\)\\(?!["\\/bfnrtu])', '\\\\\\\\', json_str)
+        
+        logger.debug(f"JSON repair completed, new length: {len(json_str)}")
+        
+        return json_str
 
 
 class PerplexityError(Exception):

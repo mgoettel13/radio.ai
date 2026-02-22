@@ -19,6 +19,7 @@ class PlaylistSong(BaseModel):
 class PlaylistResponse(BaseModel):
     """Schema for playlist generation response."""
     station_name: str = Field(..., description="Name of the radio station")
+    station_id: Optional[str] = Field(None, description="ID of the radio station")
     total_duration_hours: int = Field(..., description="Duration of playlist in hours")
     songs: List[PlaylistSong] = Field(..., description="List of songs in the playlist")
 

@@ -258,6 +258,9 @@ async def generate_playlist(
             duration_hours=station.duration
         )
         
+        # Add station_id to the playlist
+        playlist['station_id'] = str(station.id)
+        
         return PlaylistResponse(**playlist)
         
     except PerplexityError as e:

@@ -1,6 +1,7 @@
 from app.database import Base
 from app.models.article import Article
 from app.models.password_reset import PasswordReset
+from app.models.played_music import PlayedMusic
 from app.models.station import Station
 from app.models.summary import Summary
 from app.models.user import User
@@ -20,4 +21,5 @@ __all__ = [
     "UserProfile",
     "UserPreferences",
     "Station",
+    "PlayedMusic",
 ]

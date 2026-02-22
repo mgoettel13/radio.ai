@@ -18,12 +18,20 @@ class SettingsManager {
         this.prefsError = document.getElementById('prefs-error');
         this.prefsSuccess = document.getElementById('prefs-success');
         
+        // Apple Music elements
+        this.appleMusicError = document.getElementById('apple-music-error');
+        this.appleMusicSuccess = document.getElementById('apple-music-success');
+        this.appleMusicStatusBadge = document.getElementById('apple-music-status-badge');
+        this.appleMusicStorefront = document.getElementById('apple-music-storefront');
+        this.connectBtn = document.getElementById('btn-connect-apple-music');
+        
         // Tab elements
         this.tabs = document.querySelectorAll('.settings-tab');
         this.tabContents = document.querySelectorAll('.settings-tab-content');
         
         this.profileLoaded = false;
         this.preferencesLoaded = false;
+        this.appleMusicLoaded = false;
         
         this.init();
     }
@@ -50,6 +58,9 @@ class SettingsManager {
         
         // Preferences form submit
         this.preferencesForm.addEventListener('submit', (e) => this.handlePreferencesSubmit(e));
+        
+        // Apple Music connect button
+        this.connectBtn?.addEventListener('click', () => this.handleAppleMusicConnect());
         
         // Reset password button from settings
         document.getElementById('reset-password-from-settings').addEventListener('click', () => {
@@ -109,6 +120,11 @@ class SettingsManager {
         this.tabContents.forEach(content => {
             content.classList.toggle('active', content.id === `${tabName}-tab`);
         });
+        
+        // Load Apple Music settings when tab is opened
+        if (tabName === 'apple-music' && !this.appleMusicLoaded) {
+            this.loadAppleMusicSettings();
+        }
     }
     
     async loadProfile() {
@@ -227,6 +243,70 @@ class SettingsManager {
         }
     }
     
+    // Apple Music Methods
+    async loadAppleMusicSettings() {
+        try {
+            const settings = await api.getAppleMusicSettings();
+            
+            // Update status badge
+            if (settings.apple_music_connected) {
+                this.appleMusicStatusBadge.textContent = 'Connected';
+                this.appleMusicStatusBadge.classList.add('connected');
+                this.connectBtn.innerHTML = '<span>Re-authorize Apple Music</span>';
+            } else {
+                this.appleMusicStatusBadge.textContent = 'Not Connected';
+                this.appleMusicStatusBadge.classList.remove('connected');
+                this.connectBtn.innerHTML = '<span>Connect Apple Music</span>';
+            }
+            
+            // Set storefront
+            if (settings.apple_music_storefront) {
+                this.appleMusicStorefront.value = settings.apple_music_storefront;
+            }
+            
+            this.appleMusicLoaded = true;
+        } catch (error) {
+            console.error('Failed to load Apple Music settings:', error);
+            // Don't show error - just set defaults
+            this.appleMusicStatusBadge.textContent = 'Not Connected';
+            this.appleMusicStatusBadge.classList.remove('connected');
+            this.connectBtn.innerHTML = '<span>Connect Apple Music</span>';
+            this.appleMusicLoaded = true;
+        }
+    }
+    
+    async handleAppleMusicConnect() {
+        this.hideMessages();
+        
+        try {
+            // Initialize MusicKit
+            await appleMusic.init();
+            
+            // Authorize with Apple Music
+            const authorized = await appleMusic.authorize();
+            
+            if (authorized) {
+                // Update settings in backend
+                const storefront = this.appleMusicStorefront.value;
+                await api.updateAppleMusicSettings({
+                    apple_music_connected: true,
+                    apple_music_storefront: storefront
+                });
+                
+                // Update UI
+                this.appleMusicStatusBadge.textContent = 'Connected';
+                this.appleMusicStatusBadge.classList.add('connected');
+                this.connectBtn.innerHTML = '<span>Re-authorize Apple Music</span>';
+                this.showSuccess(this.appleMusicSuccess, 'Apple Music connected successfully!');
+            } else {
+                this.showError(this.appleMusicError, 'Authorization was cancelled or failed');
+            }
+        } catch (error) {
+            console.error('Failed to connect Apple Music:', error);
+            this.showError(this.appleMusicError, error.message || 'Failed to connect Apple Music');
+        }
+    }
+    
     showError(element, message) {
         element.textContent = message;
         element.classList.remove('hidden');
@@ -242,6 +322,8 @@ class SettingsManager {
         this.profileSuccess.classList.add('hidden');
         this.prefsError.classList.add('hidden');
         this.prefsSuccess.classList.add('hidden');
+        this.appleMusicError?.classList.add('hidden');
+        this.appleMusicSuccess?.classList.add('hidden');
     }
 }
 
