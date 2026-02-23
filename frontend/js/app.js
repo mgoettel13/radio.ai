@@ -16,6 +16,7 @@ class App {
         this.currentSection = 'news'; // 'news' or 'radio'
         this.currentPlaylist = null; // Store current playlist for playback
         this.resolvedPlaylist = null; // Store resolved Apple Music songs
+        this.currentlyPlayingCard = null; // Track the currently playing station card
 
         this.init();
     }
@@ -355,6 +356,281 @@ class App {
                 btn.textContent = '▶️';
             }
         }
+    }
+
+    /**
+     * Generate and play playlist inline - all in one click
+     * This replaces the modal-based workflow
+     */
+    async generateAndPlayInline(station, cardElement) {
+        // Stop any currently playing station first
+        if (this.currentlyPlayingCard && this.currentlyPlayingCard !== cardElement) {
+            this.stopAndCollapseCard(this.currentlyPlayingCard);
+        }
+        
+        const playBtn = cardElement.querySelector('.station-play-btn');
+        
+        try {
+            // 1. Show loading state
+            this.showCardLoading(cardElement, 'Generating playlist...');
+            
+            // 2. Initialize MusicKit first (needed for authorization)
+            if (!appleMusic.isInitialized()) {
+                this.updateLoadingText(cardElement, 'Initializing Apple Music...');
+                await appleMusic.init();
+            }
+            
+            // 3. Check authorization - if not authorized, show button to authorize
+            if (!appleMusic.isAuthorized()) {
+                this.showAuthorizationButton(cardElement, station, playBtn);
+                return; // Stop here, wait for user to click authorize button
+            }
+            
+            // 4. Generate playlist from Perplexity
+            const playlist = await api.generatePlaylist(station.id);
+            
+            // 5. Update loading text
+            this.updateLoadingText(cardElement, 'Resolving songs in Apple Music...');
+            
+            // 6. Resolve songs to Apple Music IDs
+            const songs = playlist.songs.map(s => ({
+                artist: s.artist,
+                title: s.title
+            }));
+            const resolved = await appleMusic.resolvePlaylist(songs);
+            
+            if (!resolved.songs || resolved.songs.length === 0) {
+                throw new Error('No songs found in Apple Music');
+            }
+            
+            // 7. Store resolved playlist on card
+            cardElement.dataset.resolvedPlaylist = JSON.stringify(resolved.songs);
+            cardElement.dataset.stationId = station.id;
+            
+            // 8. Switch to playing state
+            this.showCardPlaying(cardElement, playlist, resolved);
+            
+            // 9. Start playback
+            await appleMusic.playPlaylistAndRecord(resolved.songs, station.id);
+            
+            // 10. Track this as the currently playing card
+            this.currentlyPlayingCard = cardElement;
+            
+            // 11. Update now playing display
+            this.updateCardNowPlaying(cardElement);
+            
+            showToast('Playing ' + resolved.resolved_count + ' songs!', 'success');
+            
+        } catch (error) {
+            this.showCardError(cardElement, error.message);
+            showToast('Failed to play: ' + error.message, 'error');
+            console.error('Play inline error:', error);
+        }
+    }
+
+    /**
+     * Show loading overlay on card
+     */
+    showCardLoading(cardElement, message) {
+        cardElement.classList.add('loading');
+        const overlay = cardElement.querySelector('.loading-overlay');
+        const text = overlay.querySelector('.loading-text');
+        text.textContent = message;
+        
+        // Hide authorize button if it was shown
+        const authBtn = overlay.querySelector('.authorize-btn');
+        if (authBtn) {
+            authBtn.remove();
+        }
+        
+        overlay.classList.remove('hidden');
+    }
+
+    /**
+     * Show authorization button in the card overlay
+     * This allows the user to click to authorize Apple Music
+     */
+    showAuthorizationButton(cardElement, station, playBtn) {
+        const overlay = cardElement.querySelector('.loading-overlay');
+        const text = overlay.querySelector('.loading-text');
+        text.textContent = 'Apple Music authorization required';
+        
+        // Create authorize button
+        const authBtn = document.createElement('button');
+        authBtn.className = 'btn btn-primary authorize-btn';
+        authBtn.textContent = 'Authorize Apple Music';
+        authBtn.style.marginTop = '1rem';
+        
+        authBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            authBtn.disabled = true;
+            authBtn.textContent = 'Authorizing...';
+            
+            try {
+                const authorized = await appleMusic.authorize();
+                if (authorized) {
+                    // Continue with the playlist generation
+                    await this.continueAfterAuthorization(station, cardElement);
+                } else {
+                    authBtn.textContent = 'Authorization failed. Click to try again.';
+                    authBtn.disabled = false;
+                    showToast('Please authorize Apple Music to play songs', 'error');
+                }
+            } catch (error) {
+                console.error('Authorization error:', error);
+                authBtn.textContent = 'Error. Click to try again.';
+                authBtn.disabled = false;
+                showToast('Authorization failed: ' + error.message, 'error');
+            }
+        });
+        
+        overlay.appendChild(authBtn);
+    }
+
+    /**
+     * Continue playlist generation after authorization
+     */
+    async continueAfterAuthorization(station, cardElement) {
+        try {
+            // Generate playlist
+            this.updateLoadingText(cardElement, 'Generating playlist...');
+            const playlist = await api.generatePlaylist(station.id);
+            
+            // Resolve songs
+            this.updateLoadingText(cardElement, 'Resolving songs in Apple Music...');
+            const songs = playlist.songs.map(s => ({
+                artist: s.artist,
+                title: s.title
+            }));
+            const resolved = await appleMusic.resolvePlaylist(songs);
+            
+            if (!resolved.songs || resolved.songs.length === 0) {
+                throw new Error('No songs found in Apple Music');
+            }
+            
+            // Store resolved playlist
+            cardElement.dataset.resolvedPlaylist = JSON.stringify(resolved.songs);
+            cardElement.dataset.stationId = station.id;
+            
+            // Switch to playing state
+            this.showCardPlaying(cardElement, playlist, resolved);
+            
+            // Start playback
+            await appleMusic.playPlaylistAndRecord(resolved.songs, station.id);
+            
+            // Track this as the currently playing card
+            this.currentlyPlayingCard = cardElement;
+            
+            // Update now playing display
+            this.updateCardNowPlaying(cardElement);
+            
+            showToast('Playing ' + resolved.resolved_count + ' songs!', 'success');
+            
+        } catch (error) {
+            this.showCardError(cardElement, error.message);
+            showToast('Failed to play: ' + error.message, 'error');
+            console.error('Continue after authorization error:', error);
+        }
+    }
+
+    /**
+     * Update loading text
+     */
+    updateLoadingText(cardElement, message) {
+        const text = cardElement.querySelector('.loading-text');
+        if (text) text.textContent = message;
+    }
+
+    /**
+     * Switch card to playing state
+     */
+    showCardPlaying(cardElement, playlist, resolved) {
+        // Hide loading overlay
+        const overlay = cardElement.querySelector('.loading-overlay');
+        overlay.classList.add('hidden');
+        
+        // Add playing class (triggers CSS to show player, hide image)
+        cardElement.classList.remove('loading');
+        cardElement.classList.add('playing');
+        
+        // Update status
+        const status = cardElement.querySelector('.station-card-status');
+        status.textContent = `🎵 ${resolved.resolved_count} songs • ${playlist.total_duration_hours}h`;
+        status.classList.remove('hidden');
+    }
+
+    /**
+     * Update now playing info in card
+     */
+    updateCardNowPlaying(cardElement) {
+        const song = appleMusic.getCurrentSong();
+        if (!song) return;
+        
+        const attrs = song.attributes || song;
+        
+        const artworkEl = cardElement.querySelector('.now-playing-artwork');
+        const titleEl = cardElement.querySelector('.now-playing-title');
+        const artistEl = cardElement.querySelector('.now-playing-artist');
+        
+        titleEl.textContent = attrs.name || 'Unknown';
+        artistEl.textContent = attrs.artistName || 'Unknown Artist';
+        
+        // Handle artwork URL
+        const artwork = attrs.artwork;
+        if (artwork) {
+            let url = typeof artwork === 'string' ? artwork : artwork.url;
+            if (url && url.includes('{w}')) {
+                url = url.replace('{w}', '160').replace('{h}', '160');
+            }
+            artworkEl.src = url;
+        }
+        
+        // Update play/pause button
+        const playPauseBtn = cardElement.querySelector('.btn-play-pause');
+        playPauseBtn.textContent = appleMusic.isPlaying() ? '⏸️' : '▶️';
+    }
+
+    /**
+     * Show error on card
+     */
+    showCardError(cardElement, message) {
+        const overlay = cardElement.querySelector('.loading-overlay');
+        overlay.classList.add('hidden');
+        cardElement.classList.remove('loading');
+        
+        const status = cardElement.querySelector('.station-card-status');
+        status.textContent = `❌ ${message}`;
+        status.classList.remove('hidden');
+        
+        // Auto-hide error after 5 seconds
+        setTimeout(() => {
+            status.classList.add('hidden');
+        }, 5000);
+    }
+
+    /**
+     * Stop playback and collapse card to idle
+     */
+    stopAndCollapseCard(cardElement) {
+        appleMusic.stop();
+        cardElement.classList.remove('playing', 'loading');
+        
+        const status = cardElement.querySelector('.station-card-status');
+        status.classList.add('hidden');
+        
+        if (this.currentlyPlayingCard === cardElement) {
+            this.currentlyPlayingCard = null;
+        }
+    }
+
+    /**
+     * Toggle play/pause for a card
+     */
+    toggleCardPlayPause(cardElement) {
+        appleMusic.togglePlayPause();
+        // Update button text
+        const btn = cardElement.querySelector('.btn-play-pause');
+        btn.textContent = appleMusic.isPlaying() ? '⏸️' : '▶️';
     }
 
     displayPlaylistModal(playlist) {
@@ -771,13 +1047,18 @@ class App {
      * Handle playback state changes from Apple Music
      */
     handlePlaybackStateChange(event) {
+        // Update modal play/pause button (if modal is open)
         const playPauseBtn = document.getElementById('btn-play-pause');
-        if (!playPauseBtn) return;
+        if (playPauseBtn) {
+            playPauseBtn.innerHTML = appleMusic.isPlaying() ? '⏸️' : '▶️';
+        }
         
-        if (appleMusic.isPlaying()) {
-            playPauseBtn.innerHTML = '⏸️';
-        } else {
-            playPauseBtn.innerHTML = '▶️';
+        // Update inline card play/pause button (if card is playing)
+        if (this.currentlyPlayingCard) {
+            const cardBtn = this.currentlyPlayingCard.querySelector('.btn-play-pause');
+            if (cardBtn) {
+                cardBtn.textContent = appleMusic.isPlaying() ? '⏸️' : '▶️';
+            }
         }
     }
 
@@ -787,7 +1068,13 @@ class App {
     handleMediaItemChange(event) {
         const currentSong = appleMusic.getCurrentSong();
         if (currentSong) {
+            // Update modal now playing section
             this.updateNowPlaying(currentSong);
+            
+            // Update inline card now playing (if card is playing)
+            if (this.currentlyPlayingCard) {
+                this.updateCardNowPlaying(this.currentlyPlayingCard);
+            }
         }
     }
 

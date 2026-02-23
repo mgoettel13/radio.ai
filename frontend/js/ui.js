@@ -125,26 +125,78 @@ function createStationCard(station) {
         : '';
     
     card.innerHTML = `
+        <!-- Player Section (shown when playing) -->
+        <div class="station-card-player">
+            <div class="now-playing-inline">
+                <img class="now-playing-artwork" src="" alt="Album Art">
+                <div class="now-playing-details">
+                    <div class="now-playing-status">🎵 Now Playing</div>
+                    <div class="now-playing-title">Loading...</div>
+                    <div class="now-playing-artist">-</div>
+                </div>
+            </div>
+            <div class="inline-controls">
+                <button class="btn btn-icon btn-prev" title="Previous">⏮️</button>
+                <button class="btn btn-primary btn-play-pause" title="Play/Pause">⏸️</button>
+                <button class="btn btn-icon btn-next" title="Next">⏭️</button>
+                <button class="btn btn-secondary btn-stop" title="Stop">⏹️</button>
+            </div>
+        </div>
+        
+        <!-- Image Section (shown when idle/loading) -->
         <div class="station-card-image">
             ${imageHtml}
             <button class="station-play-btn" title="Generate Playlist">▶️ <span class="play-btn-text">Play</span></button>
+            <div class="loading-overlay hidden">
+                <div class="spinner"></div>
+                <span class="loading-text">Generating playlist...</span>
+            </div>
         </div>
+        
+        <!-- Content Section -->
         <div class="station-card-content">
             <h3 class="station-card-name">${escapeHtml(station.name)}</h3>
             ${descriptionHtml}
             <p class="station-card-duration">⏱️ ${station.duration} hour${station.duration > 1 ? 's' : ''}</p>
+            <p class="station-card-status hidden"></p>
         </div>
     `;
     
     // Handle play button click
     const playBtn = card.querySelector('.station-play-btn');
-    playBtn.addEventListener('click', (e) => {
+    playBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        app.generatePlaylist(station);
+        await app.generateAndPlayInline(station, card);
     });
     
-    // Handle card click for editing
-    card.addEventListener('click', () => app.openStation(station));
+    // Handle card click for editing - only when idle
+    card.addEventListener('click', () => {
+        // Only open edit modal if not playing or loading
+        if (!card.classList.contains('playing') && !card.classList.contains('loading')) {
+            app.openStation(station);
+        }
+    });
+    
+    // Playback controls
+    card.querySelector('.btn-play-pause').addEventListener('click', (e) => {
+        e.stopPropagation();
+        app.toggleCardPlayPause(card);
+    });
+    
+    card.querySelector('.btn-prev').addEventListener('click', (e) => {
+        e.stopPropagation();
+        appleMusic.skipToPrevious();
+    });
+    
+    card.querySelector('.btn-next').addEventListener('click', (e) => {
+        e.stopPropagation();
+        appleMusic.skipToNext();
+    });
+    
+    card.querySelector('.btn-stop').addEventListener('click', (e) => {
+        e.stopPropagation();
+        app.stopAndCollapseCard(card);
+    });
     
     return card;
 }
