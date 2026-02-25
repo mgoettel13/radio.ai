@@ -157,7 +157,7 @@ function createStationCard(station) {
         <div class="station-card-content">
             <h3 class="station-card-name">${escapeHtml(station.name)}</h3>
             ${descriptionHtml}
-            <p class="station-card-duration">⏱️ ${station.duration} hour${station.duration > 1 ? 's' : ''}</p>
+            <p class="station-card-duration">⏱️ ${station.duration} hour${station.duration > 1 ? 's' : ''}${station.play_news ? ' <span class="station-badge" title="News enabled">📰</span>' : ''}</p>
             <p class="station-card-status hidden"></p>
         </div>
     `;

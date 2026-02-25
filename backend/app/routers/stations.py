@@ -18,9 +18,11 @@ from app.schemas.station import (
     StationRead,
     StationUpdate,
     StationList,
+    StationNewsResponse,
 )
 from app.schemas.playlist import PlaylistResponse
 from app.services.perplexity import PerplexityClient, PerplexityError
+from app.services.news_generator import NewsGenerator, NewsGenerationError
 
 router = APIRouter(prefix="/api/stations", tags=["stations"])
 
@@ -54,6 +56,9 @@ async def get_stations(
             example_songs=s.example_songs or [],
             duration=s.duration,
             image_url=s.image_url or DEFAULT_IMAGE,
+            play_news=s.play_news or False,
+            play_news_at_start=s.play_news_at_start or False,
+            news_interval_minutes=s.news_interval_minutes,
             created_at=s.created_at,
             updated_at=s.updated_at,
         )
@@ -84,6 +89,9 @@ async def create_station(
         example_songs=station_data.example_songs or [],
         duration=station_data.duration,
         image_url=image_url,
+        play_news=station_data.play_news,
+        play_news_at_start=station_data.play_news_at_start,
+        news_interval_minutes=station_data.news_interval_minutes,
     )
     
     session.add(station)
@@ -98,6 +106,9 @@ async def create_station(
         example_songs=station.example_songs or [],
         duration=station.duration,
         image_url=station.image_url,
+        play_news=station.play_news or False,
+        play_news_at_start=station.play_news_at_start or False,
+        news_interval_minutes=station.news_interval_minutes,
         created_at=station.created_at,
         updated_at=station.updated_at,
     )
@@ -136,6 +147,9 @@ async def get_station(
         example_songs=station.example_songs or [],
         duration=station.duration,
         image_url=station.image_url or DEFAULT_IMAGE,
+        play_news=station.play_news or False,
+        play_news_at_start=station.play_news_at_start or False,
+        news_interval_minutes=station.news_interval_minutes,
         created_at=station.created_at,
         updated_at=station.updated_at,
     )
@@ -187,6 +201,9 @@ async def update_station(
         example_songs=station.example_songs or [],
         duration=station.duration,
         image_url=station.image_url,
+        play_news=station.play_news or False,
+        play_news_at_start=station.play_news_at_start or False,
+        news_interval_minutes=station.news_interval_minutes,
         created_at=station.created_at,
         updated_at=station.updated_at,
     )
@@ -267,4 +284,55 @@ async def generate_playlist(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate playlist: {str(e)}"
+        )
+
+
+@router.post("/{station_id}/generate-news", response_model=StationNewsResponse)
+async def generate_station_news(
+    station_id: uuid.UUID,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    session: Annotated[AsyncSession, Depends(get_async_session)],
+):
+    """
+    Generate news audio for a station.
+    
+    Uses user preferences to get personalized news.
+    Can be called in advance to pre-cache the news.
+    """
+    # Get the station
+    result = await session.execute(
+        select(Station).where(
+            Station.id == station_id,
+            Station.user_id == current_user.id
+        )
+    )
+    station = result.scalar_one_or_none()
+    
+    if not station:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Station not found"
+        )
+    
+    # Check if news is enabled for this station
+    if not station.play_news:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="News playback is not enabled for this station"
+        )
+    
+    try:
+        # Generate news using the news generator service
+        news_generator = NewsGenerator()
+        news_data = await news_generator.generate_news_for_station(
+            user_id=current_user.id,
+            session=session
+        )
+        
+        return StationNewsResponse(**news_data)
+        
+    except NewsGenerationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate news: {str(e)}"
         )

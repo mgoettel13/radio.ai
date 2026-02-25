@@ -18,6 +18,10 @@ class StationCreate(BaseModel):
     )
     duration: int = Field(default=1, ge=1, le=24, description="Playlist duration in hours (1-24)")
     image_url: Optional[str] = Field(None, max_length=50000, description="Station image URL")
+    # News configuration
+    play_news: bool = Field(default=False, description="Enable news playback")
+    play_news_at_start: bool = Field(default=False, description="Play news at stream start")
+    news_interval_minutes: Optional[int] = Field(None, ge=15, le=60, description="News interval in minutes (15, 30, or 60)")
 
 
 class StationUpdate(BaseModel):
@@ -27,6 +31,10 @@ class StationUpdate(BaseModel):
     example_songs: Optional[list[str]] = None
     duration: Optional[int] = Field(None, ge=1, le=24)
     image_url: Optional[str] = Field(None, max_length=50000)
+    # News configuration
+    play_news: Optional[bool] = Field(None, description="Enable news playback")
+    play_news_at_start: Optional[bool] = Field(None, description="Play news at stream start")
+    news_interval_minutes: Optional[int] = Field(None, ge=15, le=60, description="News interval in minutes (15, 30, or 60)")
 
 
 class StationRead(BaseModel):
@@ -38,6 +46,10 @@ class StationRead(BaseModel):
     example_songs: list[str] = []
     duration: int
     image_url: Optional[str] = None
+    # News configuration
+    play_news: bool = False
+    play_news_at_start: bool = False
+    news_interval_minutes: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 
@@ -49,3 +61,11 @@ class StationList(BaseModel):
     """Schema for listing multiple stations."""
     stations: list[StationRead]
     total: int
+
+
+class StationNewsResponse(BaseModel):
+    """Schema for station news generation response."""
+    radio_script: str = Field(..., description="The generated radio news script")
+    audio_url: str = Field(..., description="URL of the generated TTS audio")
+    duration_seconds: int = Field(..., description="Duration of the audio in seconds")
+    generated_at: datetime = Field(..., description="Timestamp when news was generated")

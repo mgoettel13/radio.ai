@@ -500,6 +500,35 @@
                                 <option value="24">24 hours</option>
                             </select>
                         </div>
+                        
+                        <!-- News Section -->
+                        <div class="form-group station-news-section">
+                            <label class="checkbox-label play-news-label">
+                                <input type="checkbox" id="station-play-news" name="play_news">
+                                <span class="checkbox-icon">📰</span>
+                                <span class="checkbox-text">Play News</span>
+                            </label>
+                            
+                            <div class="news-options hidden" id="news-options">
+                                <div class="news-options-grid">
+                                    <label class="checkbox-label sub-option">
+                                        <input type="checkbox" id="station-news-at-start" name="play_news_at_start">
+                                        <span>At start</span>
+                                    </label>
+                                    <div class="news-interval">
+                                        <label for="station-news-interval">Every</label>
+                                        <select id="station-news-interval" name="news_interval_minutes" class="interval-select">
+                                            <option value="">-</option>
+                                            <option value="15">15</option>
+                                            <option value="30">30</option>
+                                            <option value="60">60</option>
+                                        </select>
+                                        <span class="interval-unit">min</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div id="station-error" class="error-message hidden"></div>
                         <div class="form-actions">
                             <button type="button" id="station-cancel-btn" class="btn btn-secondary">Cancel</button>
@@ -570,6 +599,7 @@
     <script src="/js/settings.js"></script>
     <script src="/js/ui.js"></script>
     <script src="/js/appleMusic.js"></script>
+    <script src="/js/radioPlayer.js"></script>
     <script src="/js/app.js"></script>
     
     <!-- Register Service Worker -->

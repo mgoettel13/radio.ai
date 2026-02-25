@@ -222,8 +222,18 @@ class App {
         document.getElementById('station-description').value = '';
         document.getElementById('station-examples').value = '';
         document.getElementById('station-duration').value = '1';
+        
+        // Reset news fields
+        document.getElementById('station-play-news').checked = false;
+        document.getElementById('station-news-at-start').checked = false;
+        document.getElementById('station-news-interval').value = '';
+        document.getElementById('news-options').classList.add('hidden');
+        
         this.clearStationImagePreview();
         document.getElementById('station-error').classList.add('hidden');
+        
+        // Set up news checkbox listener
+        this.setupNewsCheckboxListener();
         
         this.stationModal.open();
     }
@@ -236,6 +246,18 @@ class App {
         document.getElementById('station-description').value = station.description || '';
         document.getElementById('station-examples').value = (station.example_songs || []).join('\n');
         document.getElementById('station-duration').value = station.duration || 1;
+        
+        // Populate news fields
+        document.getElementById('station-play-news').checked = station.play_news || false;
+        document.getElementById('station-news-at-start').checked = station.play_news_at_start || false;
+        document.getElementById('station-news-interval').value = station.news_interval_minutes || '';
+        
+        // Show/hide news options based on play_news
+        if (station.play_news) {
+            document.getElementById('news-options').classList.remove('hidden');
+        } else {
+            document.getElementById('news-options').classList.add('hidden');
+        }
         
         // Show the existing image in preview
         const previewImg = document.getElementById('station-preview-img');
@@ -250,6 +272,10 @@ class App {
         }
         
         document.getElementById('station-error').classList.add('hidden');
+        
+        // Set up news checkbox listener
+        this.setupNewsCheckboxListener();
+        
         this.stationModal.open();
     }
 
@@ -283,6 +309,29 @@ class App {
         placeholder.classList.remove('hidden');
         if (imageInput) imageInput.value = '';
     }
+    
+    /**
+     * Set up the news checkbox listener to show/hide news options
+     */
+    setupNewsCheckboxListener() {
+        const playNewsCheckbox = document.getElementById('station-play-news');
+        const newsOptions = document.getElementById('news-options');
+        const startCheckbox = document.getElementById('station-news-at-start');
+        const intervalSelect = document.getElementById('station-news-interval');
+        
+        // Remove any existing listener to avoid duplicates
+        playNewsCheckbox.onchange = null;
+        
+        playNewsCheckbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                newsOptions.classList.remove('hidden');
+            } else {
+                newsOptions.classList.add('hidden');
+                startCheckbox.checked = false;
+                intervalSelect.value = '';
+            }
+        });
+    }
 
     async saveStation(event) {
         event.preventDefault();
@@ -307,7 +356,10 @@ class App {
             description: description || null,
             example_songs,
             duration,
-            image_url: imageUrl || null
+            image_url: imageUrl || null,
+            play_news: document.getElementById('station-play-news').checked,
+            play_news_at_start: document.getElementById('station-news-at-start').checked,
+            news_interval_minutes: document.getElementById('station-news-interval').value ? parseInt(document.getElementById('station-news-interval').value, 10) : null
         };
         
         console.log('Saving station:', stationData);
@@ -361,6 +413,7 @@ class App {
     /**
      * Generate and play playlist inline - all in one click
      * This replaces the modal-based workflow
+     * Uses RadioPlayer when news is enabled
      */
     async generateAndPlayInline(station, cardElement) {
         // Stop any currently playing station first
@@ -410,16 +463,28 @@ class App {
             // 8. Switch to playing state
             this.showCardPlaying(cardElement, playlist, resolved);
             
-            // 9. Start playback
-            await appleMusic.playPlaylistAndRecord(resolved.songs, station.id);
+            // 9. Initialize radio player if needed
+            if (!radioPlayer) {
+                radioPlayer = initRadioPlayer(appleMusic);
+            }
             
-            // 10. Track this as the currently playing card
+            // 10. Check if news is enabled for this station
+            if (station.play_news) {
+                // Use RadioPlayer for news integration
+                this.updateLoadingText(cardElement, 'Preparing news...');
+                await radioPlayer.playStation(station, resolved.songs);
+                showToast('Playing ' + resolved.resolved_count + ' songs with news!', 'success');
+            } else {
+                // Regular playback without news
+                await appleMusic.playPlaylistAndRecord(resolved.songs, station.id);
+                showToast('Playing ' + resolved.resolved_count + ' songs!', 'success');
+            }
+            
+            // 11. Track this as the currently playing card
             this.currentlyPlayingCard = cardElement;
             
-            // 11. Update now playing display
+            // 12. Update now playing display
             this.updateCardNowPlaying(cardElement);
-            
-            showToast('Playing ' + resolved.resolved_count + ' songs!', 'success');
             
         } catch (error) {
             this.showCardError(cardElement, error.message);
@@ -515,16 +580,28 @@ class App {
             // Switch to playing state
             this.showCardPlaying(cardElement, playlist, resolved);
             
-            // Start playback
-            await appleMusic.playPlaylistAndRecord(resolved.songs, station.id);
+            // Initialize radio player if needed
+            if (!radioPlayer) {
+                radioPlayer = initRadioPlayer(appleMusic);
+            }
+            
+            // Check if news is enabled for this station
+            if (station.play_news) {
+                // Use RadioPlayer for news integration
+                this.updateLoadingText(cardElement, 'Preparing news...');
+                await radioPlayer.playStation(station, resolved.songs);
+                showToast('Playing ' + resolved.resolved_count + ' songs with news!', 'success');
+            } else {
+                // Regular playback without news
+                await appleMusic.playPlaylistAndRecord(resolved.songs, station.id);
+                showToast('Playing ' + resolved.resolved_count + ' songs!', 'success');
+            }
             
             // Track this as the currently playing card
             this.currentlyPlayingCard = cardElement;
             
             // Update now playing display
             this.updateCardNowPlaying(cardElement);
-            
-            showToast('Playing ' + resolved.resolved_count + ' songs!', 'success');
             
         } catch (error) {
             this.showCardError(cardElement, error.message);

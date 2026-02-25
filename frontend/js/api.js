@@ -240,6 +240,13 @@ class API {
             method: 'POST'
         });
     }
+    
+    // Station News
+    async generateStationNews(stationId) {
+        return this.request(`/api/stations/${stationId}/generate-news`, {
+            method: 'POST'
+        });
+    }
 
     // Apple Music
     async resolvePlaylist(songs) {

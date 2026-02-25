@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -40,6 +40,12 @@ class Station(Base):
     )
     duration: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     image_url: Mapped[Optional[str]] = mapped_column(String(50000), nullable=True)
+    
+    # News configuration
+    play_news: Mapped[bool] = mapped_column(Boolean, default=False)
+    play_news_at_start: Mapped[bool] = mapped_column(Boolean, default=False)
+    news_interval_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # 15, 30, or 60
+    
     created_at: Mapped[datetime] = mapped_column(
         DateTime, 
         default=datetime.utcnow, 
