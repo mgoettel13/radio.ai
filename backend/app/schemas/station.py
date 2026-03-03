@@ -22,6 +22,8 @@ class StationCreate(BaseModel):
     play_news: bool = Field(default=False, description="Enable news playback")
     play_news_at_start: bool = Field(default=False, description="Play news at stream start")
     news_interval_minutes: Optional[int] = Field(None, ge=15, le=60, description="News interval in minutes (15, 30, or 60)")
+    news_top_stories_count: int = Field(default=3, ge=1, le=10, description="Number of top stories to include (1-10)")
+    news_max_length_minutes: int = Field(default=3, ge=2, le=10, description="Maximum news length in minutes (2-10)")
 
 
 class StationUpdate(BaseModel):
@@ -35,6 +37,8 @@ class StationUpdate(BaseModel):
     play_news: Optional[bool] = Field(None, description="Enable news playback")
     play_news_at_start: Optional[bool] = Field(None, description="Play news at stream start")
     news_interval_minutes: Optional[int] = Field(None, ge=15, le=60, description="News interval in minutes (15, 30, or 60)")
+    news_top_stories_count: Optional[int] = Field(None, ge=1, le=10, description="Number of top stories (1-10)")
+    news_max_length_minutes: Optional[int] = Field(None, ge=2, le=10, description="Maximum news length in minutes (2-10)")
 
 
 class StationRead(BaseModel):
@@ -50,6 +54,8 @@ class StationRead(BaseModel):
     play_news: bool = False
     play_news_at_start: bool = False
     news_interval_minutes: Optional[int] = None
+    news_top_stories_count: int = 3
+    news_max_length_minutes: int = 3
     created_at: datetime
     updated_at: datetime
 

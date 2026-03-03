@@ -64,8 +64,8 @@
                 <div class="header-actions">
                     <!-- Navigation Menu -->
                     <nav class="nav-menu hidden" id="nav-menu">
-                        <button class="nav-item active" data-section="news">📰 News</button>
-                        <button class="nav-item" data-section="radio">📻 Radio</button>
+                        <button class="nav-item" data-section="news">📰 News</button>
+                        <button class="nav-item active" data-section="radio">📻 Radio</button>
                     </nav>
                     <button id="settings-btn" class="btn btn-icon hidden" title="Settings">
                         ⚙️
@@ -102,7 +102,7 @@
             </div>
 
             <!-- Station List -->
-            <div id="station-list" class="station-list hidden">
+            <div id="station-list" class="station-list">
                 <div class="station-header">
                     <h2>My Radio Stations</h2>
                     <button id="add-station-btn" class="btn btn-primary">
@@ -501,8 +501,10 @@
                             </select>
                         </div>
                         
-                        <!-- News Section -->
+                        <!-- Radio News Section -->
                         <div class="form-group station-news-section">
+                            <h3 class="section-header">📰 Radio News</h3>
+                            
                             <label class="checkbox-label play-news-label">
                                 <input type="checkbox" id="station-play-news" name="play_news">
                                 <span class="checkbox-icon">📰</span>
@@ -515,13 +517,47 @@
                                         <input type="checkbox" id="station-news-at-start" name="play_news_at_start">
                                         <span>At start</span>
                                     </label>
-                                    <div class="news-interval">
+                                    
+                                    <div class="form-row">
                                         <label for="station-news-interval">Every</label>
                                         <select id="station-news-interval" name="news_interval_minutes" class="interval-select">
                                             <option value="">-</option>
                                             <option value="15">15</option>
                                             <option value="30">30</option>
                                             <option value="60">60</option>
+                                        </select>
+                                        <span class="interval-unit">min</span>
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <label for="station-news-top-stories">Top Stories</label>
+                                        <select id="station-news-top-stories" name="news_top_stories_count" class="number-select">
+                                            <option value="1">1</option>
+                                            <option value="2">2</option>
+                                            <option value="3" selected>3</option>
+                                            <option value="4">4</option>
+                                            <option value="5">5</option>
+                                            <option value="6">6</option>
+                                            <option value="7">7</option>
+                                            <option value="8">8</option>
+                                            <option value="9">9</option>
+                                            <option value="10">10</option>
+                                        </select>
+                                        <span class="interval-unit">stories</span>
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <label for="station-news-max-length">Max Length</label>
+                                        <select id="station-news-max-length" name="news_max_length_minutes" class="number-select">
+                                            <option value="2">2</option>
+                                            <option value="3" selected>3</option>
+                                            <option value="4">4</option>
+                                            <option value="5">5</option>
+                                            <option value="6">6</option>
+                                            <option value="7">7</option>
+                                            <option value="8">8</option>
+                                            <option value="9">9</option>
+                                            <option value="10">10</option>
                                         </select>
                                         <span class="interval-unit">min</span>
                                     </div>
@@ -567,6 +603,10 @@
                         <button id="btn-play-pause" class="btn btn-primary" title="Play/Pause">⏸️</button>
                         <button id="btn-next" class="btn btn-icon" title="Next">⏭️</button>
                         <button id="btn-stop" class="btn btn-secondary" title="Stop">⏹️</button>
+                    </div>
+                    <div class="playback-timer">
+                        <span class="timer-icon">⏱️</span>
+                        <span id="playback-timer-display" class="timer-display">00:00</span>
                     </div>
                 </div>
                 

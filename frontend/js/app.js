@@ -13,16 +13,26 @@ class App {
         this.playlistModal = new ModalManager('playlist-modal');
         this.radioScript = null;
         this.stations = [];
-        this.currentSection = 'news'; // 'news' or 'radio'
+        this.currentSection = 'radio'; // 'news' or 'radio'
         this.currentPlaylist = null; // Store current playlist for playback
         this.resolvedPlaylist = null; // Store resolved Apple Music songs
         this.currentlyPlayingCard = null; // Track the currently playing station card
+        
+        // Playback timer properties
+        this.playbackTimer = {
+            startTime: null,
+            elapsedSeconds: 0,
+            intervalId: null,
+            isRunning: false
+        };
 
         this.init();
     }
 
     init() {
         console.log('App.init() called');
+        console.log('DEBUG: currentSection at init start:', this.currentSection);
+        
         // Event listeners
         document.getElementById('summarize-btn').addEventListener('click', () => this.summarizeCurrentArticle());
         document.getElementById('listen-btn').addEventListener('click', () => this.listenToSummary());
@@ -45,10 +55,13 @@ class App {
         this.setupPlaylistListeners();
 
         // Listen for auth state changes
+        console.log('DEBUG: Setting up auth:stateChanged listener');
         window.addEventListener('auth:stateChanged', (e) => this.onAuthStateChanged(e.detail));
 
         // Don't load articles on init - only load when user clicks "Get My News"
         this.articles = [];
+        
+        console.log('DEBUG: App.init() complete - navigateToSection was NOT called');
     }
 
     setupPlaylistListeners() {
@@ -116,6 +129,7 @@ class App {
     }
 
     navigateToSection(section) {
+        console.log('DEBUG: navigateToSection called with:', section);
         this.currentSection = section;
         
         // Update nav menu
@@ -227,6 +241,8 @@ class App {
         document.getElementById('station-play-news').checked = false;
         document.getElementById('station-news-at-start').checked = false;
         document.getElementById('station-news-interval').value = '';
+        document.getElementById('station-news-top-stories').value = '3';
+        document.getElementById('station-news-max-length').value = '3';
         document.getElementById('news-options').classList.add('hidden');
         
         this.clearStationImagePreview();
@@ -251,6 +267,8 @@ class App {
         document.getElementById('station-play-news').checked = station.play_news || false;
         document.getElementById('station-news-at-start').checked = station.play_news_at_start || false;
         document.getElementById('station-news-interval').value = station.news_interval_minutes || '';
+        document.getElementById('station-news-top-stories').value = station.news_top_stories_count || 3;
+        document.getElementById('station-news-max-length').value = station.news_max_length_minutes || 3;
         
         // Show/hide news options based on play_news
         if (station.play_news) {
@@ -318,6 +336,8 @@ class App {
         const newsOptions = document.getElementById('news-options');
         const startCheckbox = document.getElementById('station-news-at-start');
         const intervalSelect = document.getElementById('station-news-interval');
+        const topStoriesSelect = document.getElementById('station-news-top-stories');
+        const maxLengthSelect = document.getElementById('station-news-max-length');
         
         // Remove any existing listener to avoid duplicates
         playNewsCheckbox.onchange = null;
@@ -325,10 +345,14 @@ class App {
         playNewsCheckbox.addEventListener('change', (e) => {
             if (e.target.checked) {
                 newsOptions.classList.remove('hidden');
+                topStoriesSelect.disabled = false;
+                maxLengthSelect.disabled = false;
             } else {
                 newsOptions.classList.add('hidden');
                 startCheckbox.checked = false;
                 intervalSelect.value = '';
+                topStoriesSelect.disabled = true;
+                maxLengthSelect.disabled = true;
             }
         });
     }
@@ -359,7 +383,9 @@ class App {
             image_url: imageUrl || null,
             play_news: document.getElementById('station-play-news').checked,
             play_news_at_start: document.getElementById('station-news-at-start').checked,
-            news_interval_minutes: document.getElementById('station-news-interval').value ? parseInt(document.getElementById('station-news-interval').value, 10) : null
+            news_interval_minutes: document.getElementById('station-news-interval').value ? parseInt(document.getElementById('station-news-interval').value, 10) : null,
+            news_top_stories_count: parseInt(document.getElementById('station-news-top-stories').value, 10),
+            news_max_length_minutes: parseInt(document.getElementById('station-news-max-length').value, 10)
         };
         
         console.log('Saving station:', stationData);
@@ -641,9 +667,13 @@ class App {
      */
     updateCardNowPlaying(cardElement) {
         const song = appleMusic.getCurrentSong();
+        console.log('DEBUG updateCardNowPlaying - song:', song);
+        
         if (!song) return;
         
         const attrs = song.attributes || song;
+        console.log('DEBUG updateCardNowPlaying - attrs:', attrs);
+        console.log('DEBUG updateCardNowPlaying - attrs.artwork:', attrs?.artwork);
         
         const artworkEl = cardElement.querySelector('.now-playing-artwork');
         const titleEl = cardElement.querySelector('.now-playing-title');
@@ -656,10 +686,18 @@ class App {
         const artwork = attrs.artwork;
         if (artwork) {
             let url = typeof artwork === 'string' ? artwork : artwork.url;
+            console.log('DEBUG updateCardNowPlaying - artwork url before processing:', url);
             if (url && url.includes('{w}')) {
                 url = url.replace('{w}', '160').replace('{h}', '160');
             }
-            artworkEl.src = url;
+            console.log('DEBUG updateCardNowPlaying - artwork url after processing:', url);
+            if (artworkEl) {
+                artworkEl.src = url;
+                artworkEl.onload = () => console.log('DEBUG updateCardNowPlaying - Card artwork loaded');
+                artworkEl.onerror = (e) => console.error('DEBUG updateCardNowPlaying - Card artwork error:', e);
+            }
+        } else {
+            console.warn('DEBUG updateCardNowPlaying - No artwork in attrs');
         }
         
         // Update play/pause button
@@ -1064,6 +1102,9 @@ class App {
             this.updatePlaylistStatus('Playing! 🎵', 'success');
             showToast('Playing playlist!', 'success');
             
+            // Start the playback timer
+            this.startPlaybackTimer();
+            
             // Show now playing section with current song
             const currentSong = appleMusic.getCurrentSong();
             if (currentSong) {
@@ -1103,7 +1144,87 @@ class App {
     stopPlayback() {
         appleMusic.stop();
         this.hideNowPlaying();
+        this.stopPlaybackTimer();
         this.updatePlaylistStatus('Playback stopped', 'info');
+    }
+
+    /**
+     * Start the playback timer
+     */
+    startPlaybackTimer() {
+        // Reset timer
+        this.playbackTimer.elapsedSeconds = 0;
+        this.playbackTimer.startTime = Date.now();
+        this.playbackTimer.isRunning = true;
+        
+        // Update display immediately
+        this.updatePlaybackTimerDisplay();
+        
+        // Start interval to update every second
+        this.playbackTimer.intervalId = setInterval(() => {
+            this.playbackTimer.elapsedSeconds++;
+            this.updatePlaybackTimerDisplay();
+        }, 1000);
+        
+        console.log('Playback timer started');
+    }
+
+    /**
+     * Stop the playback timer
+     */
+    stopPlaybackTimer() {
+        if (this.playbackTimer.intervalId) {
+            clearInterval(this.playbackTimer.intervalId);
+            this.playbackTimer.intervalId = null;
+        }
+        this.playbackTimer.isRunning = false;
+        this.playbackTimer.startTime = null;
+        console.log('Playback timer stopped at:', this.formatPlaybackTime(this.playbackTimer.elapsedSeconds));
+    }
+
+    /**
+     * Pause the playback timer (when playback is paused)
+     */
+    pausePlaybackTimer() {
+        if (this.playbackTimer.intervalId) {
+            clearInterval(this.playbackTimer.intervalId);
+            this.playbackTimer.intervalId = null;
+        }
+        this.playbackTimer.isRunning = false;
+        console.log('Playback timer paused at:', this.formatPlaybackTime(this.playbackTimer.elapsedSeconds));
+    }
+
+    /**
+     * Resume the playback timer (when playback resumes)
+     */
+    resumePlaybackTimer() {
+        if (!this.playbackTimer.isRunning && this.playbackTimer.elapsedSeconds >= 0) {
+            this.playbackTimer.isRunning = true;
+            this.playbackTimer.intervalId = setInterval(() => {
+                this.playbackTimer.elapsedSeconds++;
+                this.updatePlaybackTimerDisplay();
+            }, 1000);
+            console.log('Playback timer resumed');
+        }
+    }
+
+    /**
+     * Update the playback timer display
+     */
+    updatePlaybackTimerDisplay() {
+        const timerEl = document.getElementById('playback-timer-display');
+        if (timerEl) {
+            timerEl.textContent = this.formatPlaybackTime(this.playbackTimer.elapsedSeconds);
+        }
+    }
+
+    /**
+     * Format seconds into MM:SS display
+     */
+    formatPlaybackTime(totalSeconds) {
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
 
     /**
@@ -1124,17 +1245,32 @@ class App {
      * Handle playback state changes from Apple Music
      */
     handlePlaybackStateChange(event) {
+        const isPlaying = appleMusic.isPlaying();
+        
         // Update modal play/pause button (if modal is open)
         const playPauseBtn = document.getElementById('btn-play-pause');
         if (playPauseBtn) {
-            playPauseBtn.innerHTML = appleMusic.isPlaying() ? '⏸️' : '▶️';
+            playPauseBtn.innerHTML = isPlaying ? '⏸️' : '▶️';
         }
         
         // Update inline card play/pause button (if card is playing)
         if (this.currentlyPlayingCard) {
             const cardBtn = this.currentlyPlayingCard.querySelector('.btn-play-pause');
             if (cardBtn) {
-                cardBtn.textContent = appleMusic.isPlaying() ? '⏸️' : '▶️';
+                cardBtn.textContent = isPlaying ? '⏸️' : '▶️';
+            }
+        }
+        
+        // Handle playback timer based on state
+        if (isPlaying) {
+            // Playback started or resumed - start or resume timer
+            if (!this.playbackTimer.isRunning && this.playbackTimer.elapsedSeconds >= 0) {
+                this.resumePlaybackTimer();
+            }
+        } else {
+            // Playback paused - pause timer
+            if (this.playbackTimer.isRunning) {
+                this.pausePlaybackTimer();
             }
         }
     }
@@ -1164,9 +1300,19 @@ class App {
         const artistEl = document.getElementById('now-playing-artist');
         const artworkEl = document.getElementById('now-playing-artwork');
         
+        // DEBUG: Log full song object to diagnose artwork issue
+        console.log('DEBUG updateNowPlaying - Full song object:', song);
+        console.log('DEBUG updateNowPlaying - Song keys:', Object.keys(song || {}));
+        
         if (section && titleEl && artistEl) {
             // MusicKit uses attributes property for song details
             const attrs = song.attributes || song;
+            
+            // DEBUG: Log attributes and artwork
+            console.log('DEBUG updateNowPlaying - attrs:', attrs);
+            console.log('DEBUG updateNowPlaying - attrs.artwork:', attrs?.artwork);
+            console.log('DEBUG updateNowPlaying - song.artwork:', song?.artwork);
+            console.log('DEBUG updateNowPlaying - artwork type:', typeof attrs?.artwork);
             
             titleEl.textContent = attrs.name || song.title || 'Unknown';
             artistEl.textContent = attrs.artistName || song.artist || 'Unknown Artist';
@@ -1176,25 +1322,50 @@ class App {
                 let artworkUrl = null;
                 const artwork = attrs.artwork || song.artwork;
                 
+                // DEBUG: Log artwork processing
+                console.log('DEBUG updateNowPlaying - Processing artwork:', artwork);
+                
                 if (artwork) {
                     if (typeof artwork === 'string') {
                         // String URL with template placeholders
                         artworkUrl = artwork.replace('{w}', '120').replace('{h}', '120');
+                        console.log('DEBUG updateNowPlaying - String artwork URL:', artworkUrl);
                     } else if (artwork.url) {
                         // Object with url property
                         artworkUrl = artwork.url;
+                        console.log('DEBUG updateNowPlaying - Object artwork.url:', artworkUrl);
                         if (artworkUrl && artworkUrl.includes('{w}')) {
                             artworkUrl = artworkUrl.replace('{w}', '120').replace('{h}', '120');
                         }
+                    } else {
+                        // DEBUG: Log all artwork object keys to see available properties
+                        console.log('DEBUG updateNowPlaying - Artwork object keys:', Object.keys(artwork));
+                        // Try other common property names
+                        if (artwork.artworkURL) {
+                            artworkUrl = artwork.artworkURL;
+                            console.log('DEBUG updateNowPlaying - Found artwork.artworkURL:', artworkUrl);
+                        } else if (artwork.imageUrl) {
+                            artworkUrl = artwork.imageUrl;
+                            console.log('DEBUG updateNowPlaying - Found artwork.imageUrl:', artworkUrl);
+                        }
                     }
+                } else {
+                    console.warn('DEBUG updateNowPlaying - No artwork data found in song');
                 }
                 
                 if (artworkUrl) {
+                    console.log('DEBUG updateNowPlaying - Setting artwork src to:', artworkUrl);
                     artworkEl.src = artworkUrl;
+                    // DEBUG: Check if image loads successfully
+                    artworkEl.onload = () => console.log('DEBUG updateNowPlaying - Artwork loaded successfully');
+                    artworkEl.onerror = (e) => console.error('DEBUG updateNowPlaying - Artwork failed to load:', e);
                 } else {
                     // Default placeholder if no artwork
+                    console.warn('DEBUG updateNowPlaying - No artwork URL, using placeholder');
                     artworkEl.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🎵</text></svg>';
                 }
+            } else {
+                console.error('DEBUG updateNowPlaying - artworkEl not found in DOM');
             }
             
             section.classList.remove('hidden');
@@ -1209,17 +1380,34 @@ class App {
         if (section) {
             section.classList.add('hidden');
         }
+        // Reset timer display when hiding
+        this.resetPlaybackTimerDisplay();
+    }
+
+    /**
+     * Reset the playback timer display to 00:00
+     */
+    resetPlaybackTimerDisplay() {
+        this.playbackTimer.elapsedSeconds = 0;
+        this.updatePlaybackTimerDisplay();
     }
 
     onAuthStateChanged(detail) {
+        console.log('DEBUG: onAuthStateChanged called with:', detail);
         if (detail && detail.isAuthenticated) {
+            console.log('DEBUG: User is authenticated, navigating to radio');
             this.showGetMyNewsButton();
             this.showMyRadioNewsButton();
             this.showNavMenu();
+            // Navigate to radio section by default after login
+            this.navigateToSection('radio');
         } else {
+            console.log('DEBUG: User is NOT authenticated, hiding nav');
             this.hideGetMyNewsButton();
             this.hideMyRadioNewsButton();
             this.hideNavMenu();
+            // Still need to set initial view even when not logged in
+            this.navigateToSection('radio');
         }
     }
 

@@ -106,10 +106,12 @@ class AuthManager {
     }
 
     async checkSession() {
+        console.log('DEBUG AuthManager: checkSession called, token exists:', !!api.token);
         if (api.token) {
             try {
                 this.user = await api.getCurrentUser();
                 this.isAuthenticated = true;
+                console.log('DEBUG AuthManager: Session valid, user authenticated');
                 this.updateUI();
             } catch (error) {
                 console.log('Session expired');
@@ -117,7 +119,10 @@ class AuthManager {
                 this.showLoginScreen();
             }
         } else {
+            console.log('DEBUG AuthManager: No token, showing login screen');
             this.showLoginScreen();
+            // Still dispatch auth state change for unauthenticated
+            this.updateUI();
         }
     }
 
@@ -337,6 +342,7 @@ class AuthManager {
             this.authBtn.onclick = () => this.openModal();
         }
         
+        console.log('DEBUG AuthManager: Dispatching auth:stateChanged, isAuthenticated:', this.isAuthenticated);
         // Dispatch auth state change event for other components
         window.dispatchEvent(new CustomEvent('auth:stateChanged', {
             detail: {

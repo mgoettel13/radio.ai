@@ -425,7 +425,13 @@ class AppleMusicService {
      */
     getCurrentSong() {
         if (!this.music) return null;
-        return this.music.nowPlayingItem;
+        const item = this.music.nowPlayingItem;
+        console.log('DEBUG getCurrentSong - nowPlayingItem:', item);
+        if (item) {
+            console.log('DEBUG getCurrentSong - item.attributes:', item.attributes);
+            console.log('DEBUG getCurrentSong - item.attributes.artwork:', item.attributes?.artwork);
+        }
+        return item;
     }
 
     /**

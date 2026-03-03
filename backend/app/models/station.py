@@ -45,6 +45,8 @@ class Station(Base):
     play_news: Mapped[bool] = mapped_column(Boolean, default=False)
     play_news_at_start: Mapped[bool] = mapped_column(Boolean, default=False)
     news_interval_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # 15, 30, or 60
+    news_top_stories_count: Mapped[int] = mapped_column(Integer, default=3)  # 1-10, default 3
+    news_max_length_minutes: Mapped[int] = mapped_column(Integer, default=3)  # 2-10, default 3
     
     created_at: Mapped[datetime] = mapped_column(
         DateTime, 
