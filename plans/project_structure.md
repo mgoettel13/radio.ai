@@ -89,8 +89,8 @@ DATABASE_URL=postgresql+asyncpg://user:pass@localhost/npr_news
 SECRET_KEY=your-secret-key-here
 
 # APIs
-PERPLEXITY_API_KEY=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
-SPEECHIFY_API_KEY=xfwVyPc52SkSfD9CTMt195O6Y2RKJomFpocA0jVWUu8=
+PERPLEXITY_API_KEY=your-perplexity-api-key-here
+SPEECHIFY_API_KEY=your-speechify-api-key-here
 
 # App
 APP_PORT=8000
