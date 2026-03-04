@@ -1,30 +1,67 @@
-from speechify import Speechify
+"""
+Speechify TTS test script - Uses environment variables from .env
+
+This script demonstrates how to use the Speechify API with proper
+environment variable configuration.
+"""
 import os
+import sys
+import base64
 
-client = Speechify(
-    token="xfwVyPc52SkSfD9CTMt195O6Y2RKJomFpocA0jVWUu8=",
-)
-audio_response = client.tts.audio.speech(
-    input="The death toll from the January 1, 2026, fire at Le Constellation bar in Crans-Montana, Switzerland, has risen to 41 after an 18-year-old Swiss national died from injuries in a Zurich hospital on January 31.[1][4] The blaze, which started in the crowded basement during New Year's celebrations when sparklers on champagne bottles ignited flammable ceiling insulation, injured over 100 people, many with severe burns, amid reports of a blocked emergency exit and inadequate fire safety measures.[2][3] Swiss prosecutors have launched a criminal investigation into the bar owners for negligent homicide, bodily harm, and arson, with one co-owner under bail and his wife under house arrest.[3][4]",
-    voice_id="oliver",
-    audio_format="mp3")
+from speechify import Speechify
+
+# Add parent directory to path to import app config
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from app.config import get_settings
 
 
-
-
-with open("output.mp3", "wb") as f:
-    # Debug: Log the type of audio_data
-    import sys
-    print(f"audio_data type: {type(audio_response.audio_data)}", file=sys.stderr)
-    print(f"audio_data length: {len(audio_response.audio_data) if hasattr(audio_response.audio_data, '__len__') else 'N/A'}", file=sys.stderr)
+def test_speechify_tts():
+    """Test Speechify TTS using API key from environment variables."""
+    # Get settings from environment variables
+    settings = get_settings()
+    api_key = settings.speechify_api_key
     
-    # Check if it's a string that needs decoding
-    if isinstance(audio_response.audio_data, str):
-        print("audio_data is a string, attempting to decode from base64", file=sys.stderr)
-        import base64
-        f.write(base64.b64decode(audio_response.audio_data))
-    else:
-        f.write(audio_response.audio_data)
+    if not api_key:
+        print("Error: SPEECHIFY_API_KEY not set in environment/.env file", file=sys.stderr)
+        sys.exit(1)
+    
+    # Initialize Speechify client with API key from env
+    client = Speechify(token=api_key)
+    
+    # Test text
+    test_text = (
+        "The death toll from the January 1, 2026, fire at Le Constellation bar "
+        "in Crans-Montana, Switzerland, has risen to 41 after an 18-year-old Swiss "
+        "national died from injuries in a Zurich hospital on January 31."
+    )
+    
+    print("Generating speech...", file=sys.stderr)
+    
+    audio_response = client.tts.audio.speech(
+        input=test_text,
+        voice_id="oliver",
+        audio_format="mp3"
+    )
+    
+    # Save output
+    output_file = "output.mp3"
+    with open(output_file, "wb") as f:
+        print(f"audio_data type: {type(audio_response.audio_data)}", file=sys.stderr)
+        print(f"audio_data length: {len(audio_response.audio_data) if hasattr(audio_response.audio_data, '__len__') else 'N/A'}", file=sys.stderr)
+        
+        # Check if it's a string that needs decoding
+        if isinstance(audio_response.audio_data, str):
+            print("audio_data is a string, attempting to decode from base64", file=sys.stderr)
+            f.write(base64.b64decode(audio_response.audio_data))
+        else:
+            f.write(audio_response.audio_data)
+    
+    print(f"Audio saved to {output_file}", file=sys.stderr)
+    
+    # Play with Windows default player
+    os.system(f"start {output_file}")
 
-# Play with Windows default player
-os.system("start output.mp3")
+
+if __name__ == "__main__":
+    test_speechify_tts()
