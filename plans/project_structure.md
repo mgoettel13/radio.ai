@@ -85,12 +85,12 @@ npr-news-summarizer/
 # Database
 DATABASE_URL=postgresql+asyncpg://user:pass@localhost/npr_news
 
-# Security
-SECRET_KEY=your-secret-key-here
+# # Security
+# SECRET_KEY=your-secret-key-here
 
-# APIs
-PERPLEXITY_API_KEY=your-perplexity-api-key-here
-SPEECHIFY_API_KEY=your-speechify-api-key-here
+# # APIs
+# PERPLEXITY_API_KEY=your-perplexity-api-key-here
+# SPEECHIFY_API_KEY=your-speechify-api-key-here
 
 # App
 APP_PORT=8000

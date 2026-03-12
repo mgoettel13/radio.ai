@@ -61,8 +61,8 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title="NPR News Summarizer",
-    description="A PWA that fetches NPR news, summarizes with Perplexity AI, and reads aloud with Speechify TTS",
+    title="Radio.ai",
+    description="A PWA that creates a personalized radio station based on your news and music preferences. Built with FastAPI, SQLAlchemy, and TTS technology.",
     version="1.0.0",
     lifespan=lifespan
 )
