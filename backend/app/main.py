@@ -76,6 +76,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# Mount static files (for serving frontend)
+static_dir = os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
+if os.path.exists(static_dir):
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+
+
 # Include auth router
 app.include_router(auth_router)
 
@@ -90,11 +97,6 @@ app.include_router(stations_router)
 app.include_router(apple_music_router)
 app.include_router(played_music_router)
 
-
-# Mount static files (for serving frontend)
-static_dir = os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
-if os.path.exists(static_dir):
-    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
 
 @app.get("/api/health")
