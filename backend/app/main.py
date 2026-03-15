@@ -77,11 +77,6 @@ app.add_middleware(
 )
 
 
-# Mount static files (for serving frontend)
-static_dir = os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
-if os.path.exists(static_dir):
-    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
-
 
 # Include auth router
 app.include_router(auth_router)
@@ -103,3 +98,10 @@ app.include_router(played_music_router)
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy"}
+
+
+# Mount static files (for serving frontend)
+static_dir = os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
+print (f"Mounting static files from: {static_dir}")
+if os.path.exists(static_dir):
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
