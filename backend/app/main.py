@@ -103,5 +103,10 @@ async def health_check():
 # Mount static files (for serving frontend)
 static_dir = os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
 print (f"Mounting static files from: {static_dir}")
+
+app_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+static_dir = os.path.join(app_root, "frontend")
+
+print (f"Mounting static files from: {static_dir}")
 if os.path.exists(static_dir):
     app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
