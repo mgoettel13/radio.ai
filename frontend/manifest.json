@@ -1,6 +1,6 @@
 {
-  "name": "NPR News Summarizer",
-  "short_name": "NPR Summarizer",
+  "name": "Radio.ai",
+  "short_name": "Radio.ai",
   "description": "AI-powered NPR news summaries with text-to-speech",
   "start_url": "/",
   "display": "standalone",

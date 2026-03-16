@@ -1,5 +1,5 @@
 /**
- * API Client for NPR News Summarizer
+ * API Client for Radio.ai
  */
 
 const API_BASE_URL = '';
